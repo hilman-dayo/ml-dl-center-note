@@ -1,0 +1,21 @@
+# -*- org-preview-latex-image-directory: "../output/ltximages/" -*-
+#+title: 正規化方法
+
+* 概念
+  - トレーニングエラーの増加を犠牲にして、テストエラーを減らすための戦略
+    - overfitting を防ぐ (モデルを一般化)
+  - 「learning rate」のパラメータの次に, 最も大事なチューンしないといけないパレメータ
+
+** タイプ
+   - L1, L2 (weight decay)
+   - Elastic Net
+   - パラメータ化正則化
+     - L1, L2?
+   - 明確的な正則化
+     - Dropout
+   - 暗黙的な正則化
+     - データ拡張
+     - early stopping
+
+* 課題 [0/1]
+  - [ ] すべての正則化は訓練のときだけ適応?

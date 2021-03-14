@@ -1,0 +1,7 @@
+#+title: ResNet
+
+* 層
+  - 152 層
+
+* 新規性
+  - 残差ブロック (Shortcut Connection)

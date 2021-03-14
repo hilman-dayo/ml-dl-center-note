@@ -1,0 +1,31 @@
+# -*- org-preview-latex-image-directory: "../output/ltximages/" -*-
+#+property: header-args:python :session step :async yes :output results
+
+* 概念
+  - 一般的にいうと, 単層パーセプトロンが使う活性化関数
+
+    入力 <= 0 → 0
+    入力 >  0 → 1
+
+* 可視化
+  \[
+    h(x) = \begin{cases} 0 & (x \leq 0) \\ 1 & (x > 0) \end{cases}
+  \]
+
+
+  #+begin_src python :file ../output/images/step.png
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+
+    def step(x):
+        return (x > 0).astype(np.int)
+
+    x = np.arange(-5.0, 5.0, 0.1)
+    plt.plot(x, step(x))
+    plt.ylim(-0.1, 1.1)
+    plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/step.png]]

@@ -1,0 +1,60 @@
+# -*- org-preview-latex-image-directory: "../../output/ltximages/" -*-
+
+* 概念
+  - データを 0 ~ 1にする正規化方法
+
+* 実装
+  \[
+  I_N = (I - \text{Min}) \frac{\text{newMax} - \text{newMin}}{\text{Max} - \text{Min}} + \text{newMin}
+  \]
+
+
+  #+begin_src python :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data.png
+      import matplotlib.pyplot as plt
+      import numpy as np
+
+
+      def normal_normalize(x):
+          curr_min = x.min()
+          curr_max = x.max()
+          new_min = 0
+          new_max = 1
+
+          # スケールを獲得
+          scale = (new_max - new_min) / (curr_max - curr_min)
+
+          # データを一旦, 現在の最小値に移動させ, スケール
+          x_ = x - curr_min
+          # x_ *= scale  ← 整数と浮動小数点数の演算のため, ダメ
+          x_ = x_ * scale
+
+          # データを新最小値に移動させる
+          x_ += new_min
+
+          return x_
+  #+end_src
+
+  #+RESULTS:
+
+
+  #+begin_src python :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data-orig.png
+      x = np.random.randint(0, 256, size=(28, 28)).ravel()
+
+      plt.figure(figsize=(8, 5))
+      plt.scatter(range(len(x)), x)
+      plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../../output/images/normalization-normal-data-orig.png]]
+
+  #+begin_src python :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data-normalize.png
+      x_n = normal_normalize(x)
+
+      plt.figure(figsize=(8, 5))
+      plt.scatter(range(len(x_n)), x_n)
+      plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../../output/images/normalization-normal-data-normalize.png]]

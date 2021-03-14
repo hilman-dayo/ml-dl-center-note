@@ -1,0 +1,12 @@
+#+title: 深層学習をデザイン
+
+* 層と層のユニットの数を選択
+  - 小さい数からスタートし, 少しずつその値をあげる
+    - 一番小さなモデル: 線形回帰 (linear regression)
+  - 「深い」と「広い」, どんなモデルのタイプにする?
+    - 深いモデルが望ましい
+    - 「skip connections」を実装 (resnet)
+      - よく使われる
+
+* 参考
+  - https://www.youtube.com/watch?v=fTw3K8D5xDs

@@ -1,0 +1,38 @@
+#+name: data-path
+: ~/MY_DRIVE/STUDY/e-books/pyimagesearch/dl4cv-new/2_practicioner_bundle/PB_Code/datasets/animals/images
+#+name: output-path
+: /tmp/data
+#+name: train-sep 
+: 0.7
+
+#+begin_src emacs-lisp :var data-path=data-path output-path=output-path train-dir="train" test-dir="test" train-sep=train-sep :results output
+  (defun prepare-dir (root)
+    (when (f-exists? root)
+      (f-delete root t))
+    (f-mkdir root)
+    (f-mkdir (f-join root train-dir))
+    (f-mkdir (f-join root test-dir)))
+
+  (defun ln-data (files new-root)
+    (cl-flet ((ln-func (file root)
+                       (shell-command
+                        (concat "ln -s " file " " (f-join new-root (f-filename file))))))
+      (mapc (lambda (file) (ln-func file new-root)) files)))
+
+  (defun make-ln-data (path idx output)
+    (let* ((data-dir-name (concat idx "_" (f-filename path)))
+           (tr-dir (f-join output train-dir data-dir-name))
+           (te-dir (f-join output test-dir data-dir-name))
+           (files (my-shuffle (f-files path (lambda (file) (equal (f-ext file) "jpg")))))
+           (sep (truncate (* train-sep (length files)))))
+      (f-mkdir tr-dir te-dir)
+      (ln-data (cl-subseq files 0 sep) tr-dir)
+      (ln-data (cl-subseq files sep) te-dir)
+      ))
+
+  (prepare-dir output-path)
+  (loop for dp in (f-directories data-path) and idx from 0
+        do (make-ln-data dp (number-to-string idx) output-path))
+#+end_src
+
+#+RESULTS:

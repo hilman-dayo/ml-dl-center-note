@@ -1,0 +1,28 @@
+* Uncertainty Sampling
+** Least Confidence
+   - 短所:
+     - スパムや外れデータを選ぶがち
+   - 解決:
+     - 複数の違う query strategy を交互に適応
+       - least confidence → random → margin sampling etc.
+
+** Margin Sampling
+   - 最小の差を持っている第一と第二のデータを選ぶ
+   - 決定境界を絞り込む
+
+** Entropy sampling
+   - Margin Sampling と大体似ているが, エントロピーは全クラス
+     を踏まえる
+
+* Query-by-committee
+  - 複数の学習されたモデルが最も一致していないデータを選ぶ
+
+* Expected model change
+  - ラベルを見つかったら, 最もモデルに影響を与えるデータを選択
+  - 計算が重い
+
+* Expected error reduction
+  - 計算が重い
+
+* 参考
+  - https://blog.scaleway.com/2020/active-learning-some-datapoints-are-more-equal-than-others/

@@ -1,0 +1,75 @@
+A CENTER NOTE ON K-FOLD CROSS-VALIDATION -*- mode: org -*-
+
+* About K-fold Cross-Validation
+  - a statistical method / a resampling procedure to estimate the performance of
+    a machine learning models
+    - used when we has limited data sample
+  - commonly used in applied machine learning to compare and select a model for
+    given predictive modeling problem (dataset)
+    - easy to understand
+    - easy to implement
+    - estimated model performance generally has lower bias or lower optimistic
+      estimate compared to other methods like the simple train/test split
+  - one parameter: =k= -> number of groups that the data is going to split into
+    - when =k= is 10, the procedure could be called 10-fold cross-validation
+
+* Some More Details
+** Case Study
+   - number of data point: 20
+   - =k=: 4
+   - with above settings, we will have a "data group" like below
+     - [ (K1(5)), (K2(5)), (K3(5)), (K4(5)) ]
+   - every time a model is trained, one of the data group will be selected as
+     the validation dataset, and the other data groups will be used as the train data
+   - the model is then trained and evaluated
+   - this process will be repeated until all of the data group have been
+     selected as the validation dataset (which means repeated for 4 times)
+   - means that each data group is given the opportunity to be used in the validation
+     dataset 1 time and used to train the model k-1 times
+** Important Notes
+   - prevent data leakage and an optimistic estimate of the model performance
+     - data preparation prior to fitting the model occur on the CV-assigned
+       training dataset within the loop rather than on the broader data set
+     - this also apply to hyperparameters tuning
+** Configuration of =k=
+   - must be chosen carefully
+   - poorly chosen value may result in a mis-representative idea of the model's performance
+     - score with high variance (that may change a lot based on the data used to
+       fit the model)
+     - high bias (such as overestimate model's skill)
+   - three common tactics to chose =k= value
+     1) Representative
+        - value for k is chosen so that each train/test group of data samples is
+          large enough to be statistically representative of the broader dataset
+     2) k=10
+        - fixed to 10
+        - generally result in a model performance estimate with low bias and
+          modest variance
+     3) k=n
+        - this approach also called =leave-one-out cross-validation=
+        - =n= is the size of the dataset
+
+   - as k gets larger, the size difference between training set and resampling
+     subsets gets smaller
+     - as this difference decreases, the bias of the technique becomes smaller
+   - it is preferable to split data sample into k groups with the same number
+     of samples
+
+   - conclusion:
+     - choice of k will affect the bias-variance trade-off
+     - k=5 or k=10 is generally used
+       - these values empirically show to yield test error rate estimates that
+         suffer neither from excessively high bias or nor from very high variance
+
+* Procedure
+  1) Shuffle the dataset randomly
+  2) Split the dataset into =k= groups
+  3) For each unique group
+     1. Make it as a hold out data set
+     2. Train the model with the remaining dataset
+     3. Evaluate the model with the hold out dataset
+     4. Retain the evaluation score and discard model
+  4) Summarize the model skill using the retained evaluation scores
+
+* References
+  - [[https://machinelearningmastery.com/k-fold-cross-validation/][A Gentle Introduction to k-fold Cross-Validation]]

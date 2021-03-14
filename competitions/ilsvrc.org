@@ -1,0 +1,14 @@
+#+title: ImageNet Large Scale Visual Recognition Challenge
+
+
+* コンペの優秀者
+  - 2012:
+    1. AlexNet
+  - 2013:
+    1. ZFNet
+  - 2014:
+    - Classification Task
+      1. GoogLeNet
+      2. VGGNet
+    - Localization Task
+      1. VGGNet

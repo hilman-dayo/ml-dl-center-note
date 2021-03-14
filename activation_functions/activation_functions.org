@@ -1,0 +1,10 @@
+* 概念
+  - 入力信号の総和を週つ力慎吾に変換する関数
+
+  - 関数が活性化し, 「ON」になるため (例: 出力値 > 0.5 のとき), 「activation function」/ 活性化関数
+    という名前がつけられる
+
+      Activation functions transform nonlinearly the output of the previous layer
+      of the network as the input for its next layer. This nonlinear
+      transformation allows the network to "learn" complex data that can lead to a
+      "more intelligent" network.

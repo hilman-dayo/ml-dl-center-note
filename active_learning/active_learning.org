@@ -1,0 +1,42 @@
+https://www.youtube.com/watch?v=ANIw1Mz1SRI
+図をコピー
+
+ひくい認識
+- ユーザーに見せる
+
+定量化によって, ラベルしたデータとかなり違うデータを抽出するように
+
+active-learning
+- 大きなデータセットから, サブセットのみ使い, 学習を行う
+  - ランダムにサブセットを選択するのではなく,
+    最適なサブセットを選択して, より良い学習モデルを作成
+
+
+Cooperative learning
+- active learning の一種
+- 人間と機械は協力してラベルを実行
+- 高く認識したデータを学習データとして使う
+
+active learning (Human-in-the-loop (HITL) 学習) は半教学習の一種
+- モデル自体がどちらデータにラベルを付けばよいかを教えてくれる
+- 除外データなどがランクダウンかもしれないため, 普段の学習より良いかもしれない
+
+* 問題
+  - 動画からどうやってフレームを決めて, 抽出
+  - どうやって, 検出される物体を判断?
+    - 数わからないし
+    - 座標わからないし
+
+* 参考
+  - 超良さそう
+    - https://www.datacamp.com/community/tutorials/active-learning
+    - http://burrsettles.com/pub/settles.activelearning.pdf
+  - https://medium.com/ixorthink/how-to-setup-an-active-learning-framework-for-your-object-detection-model-ae46ef502f5f
+  - 男のセット
+    - https://www.manning.com/books/human-in-the-loop-machine-learning
+    - http://robertmunro.com/uncertainty_sampling_example.html
+    - https://medium.com/pytorch/https-medium-com-robert-munro-active-learning-with-pytorch-2f3ee8ebec
+    - https://towardsdatascience.com/advanced-active-learning-cheatsheet-d6710cba7667
+  - 女のセット
+    - https://blog.scaleway.com/2020/active-learning-some-datapoints-are-more-equal-than-others/
+    - https://blog.scaleway.com/2020/active-learning-pytorch/

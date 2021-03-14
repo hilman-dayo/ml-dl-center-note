@@ -1,0 +1,127 @@
+#+title: Learning Rate Schedulers (学習率スケジューラ)
+
+* 概念
+  - エポックごとに学習率を調整することによる利点:
+    - 損失 ↓
+    - overfitting ↓
+    - 精度 ↑
+    - 時々, ネットワークを訓練するための合計時間 ↓
+  - 学習率スケジュールのプロセス
+    1. 訓練のはじめに, 大きな学習率を使い, 適度に良い重みのセットを見つける
+    2. その後, 小さな学習率を使い, より最適な重みを見つける
+
+* 学習率スケジューラのタイプ
+** エポックスに基づいて徐々に減少
+   - 例: 線形・多項式・指数 関数
+
+*** Keras の標準学習率スケジュール
+    - バッチごとに学習率を調整
+    - =lr = init_lr * (1.0 / (1.0 + decay * iterations))=
+      - 定数 =init_lr=: 最小に渡された「learning rate」.
+      - 定数 =decay=: ユーザーが設定する定数.
+                     原則的に, =init_lr / エポック数= で設定.
+      - 変数 =iterations=: 「バッチ目 * 1つのエポックに含んでいるバッチの合計」.
+                          バッチの合計の計算し方は「ceil(訓練画像数 / バッチサイズ)」
+
+** 特定のエポックスに基づいて低下
+   - 例: 区分関数 (piecewise function)
+
+*** Step-based Decay
+    :PROPERTIES:
+    :header-args: :session lr-schedulers :async yes
+    :END:
+    - 繰り返し, 学習率はある決まっているエポックス数で一定で, その後低下
+    - 以下の通り, 2 つの適応オプションがある
+      (DL4CV が言っていることがそんなにわかっているわけではないが, まあ, 以下のようだろう)
+
+
+    #+call: gb-import-all()
+
+    #+RESULTS:
+    : Using TensorFlow backend.
+
+
+    1. 方程式を定義
+       1) 学習率を半分 (因数) で低下
+
+
+          #+begin_src python
+            epochs = 40
+            n_epoch = 10 # Number of epoch before the learning rate is dropped
+            lr = 0.1
+            f1 = 0.5
+            f2 = 0.25
+
+            y_f1 = []
+            _lr = lr
+            for i, epoch in enumerate(range(epochs)):
+                if i % n_epoch == 0 and i != 0:
+                    _lr *= f1
+                y_f1.append(_lr)
+
+            y_f2 = []
+            _lr = lr
+            for i, epoch in enumerate(range(epochs)):
+                if i % n_epoch == 0 and i != 0:
+                    _lr *= f2
+                y_f2.append(_lr)
+          #+end_src
+
+          #+RESULTS:
+
+          #+begin_src python :file output/images/lrs_by_factor.png
+            plt.style.use("ggplot")
+            plt.plot(range(1, epochs + 1), y_f1, label=f"factor={f1}")
+            plt.plot(range(1, epochs + 1), y_f2, label=f"factor={f2}")
+            plt.title('Learning Rate Schedules by Factors')
+            plt.legend()
+            plt.show()
+          #+end_src
+
+          #+RESULTS:
+          [[file:output/images/lrs_by_factor.png]]
+
+
+       2) 学習率を一桁で低下 (drop by an order of magnitude)
+
+
+          #+begin_src python
+            epochs = 40
+            n_epoch = 10 # Number of epoch before the learning rate is dropped
+            lr = 0.1
+            mag1 = 0.1
+            mag2 = 0.01
+
+            y_mag1 = []
+            _lr = lr
+            for i, epoch in enumerate(range(epochs)):
+                if i % n_epoch == 0 and i != 0:
+                    _lr *= mag1
+                y_mag1.append(_lr)
+
+            y_mag2 = []
+            _lr = lr
+            for i, epoch in enumerate(range(epochs)):
+                if i % n_epoch == 0 and i != 0:
+                    _lr *= mag2
+                y_mag2.append(_lr)
+          #+end_src
+
+          #+RESULTS:
+
+          #+begin_src python :file output/images/lrs_by_magnitude.png
+            plt.style.use("ggplot")
+            plt.plot(range(1, epochs + 1), y_mag1, label=f"magnitude={mag1}")
+            plt.plot(range(1, epochs + 1), y_mag2, label=f"magnitude={mag2}")
+            plt.title('Learning Rate Schedules by Magnitudes')
+            plt.legend()
+            plt.show()
+          #+end_src
+
+          #+RESULTS:
+          [[file:output/images/lrs_by_magnitude.png]]
+
+    2. =ctrl-c= メソッド
+       - 高度な方法
+       - 妥当な精度を得るために, 必要なエポック数が知られていない,
+         深い NN を使用する大きなデータセットに適用

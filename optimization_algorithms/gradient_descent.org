@@ -1,0 +1,447 @@
+#+title: 勾配降下法
+#+property: header-args:python :session gradient-descent :async yes :exports none
+
+#+call: gb-autoreload()
+#+name: gd-import
+#+begin_src python
+  import matplotlib.pyplot as plt
+  import numpy as np
+  from sklearn.datasets import make_blobs
+  from sklearn.metrics import classification_report
+  from sklearn.model_selection import train_test_split
+#+end_src
+
+#+RESULTS: gd-import
+
+#+RESULTS:
+
+* 勾配降下法について (主な特徴など)
+** 概念
+   - 繰り返して, 「optimization surface / loss landscape」で動作している最適化アルゴリズム
+     (iterative optimization algorithm)
+     - 繰り返し:
+       - パラメータを評価
+       - 損失を計算
+       - 損失を最小限できる方向に移動
+   - 「loss landscape」に, 局所的最小値と極小値があり, そのいずれかを探すことは勾配降下法の目的である
+
+** Optimization surface をナビゲートる
+   #+begin_src python :file ../output/images/loss_wr_to_weights.png
+     w = np.linspace(0, 20, 100)
+     y1 = np.linspace(20, 5, 20)
+     y2 = np.linspace(5, 15, 20)
+     y3 = np.linspace(15, 13, 20)
+     y4 = np.linspace(14, 17, 20)
+     y5 = np.linspace(17, 0, 20)
+
+     y = np.concatenate([y1, y2, y3, y4, y5], axis=0)
+
+     plt.plot(w, y, 'b-', label='loss')
+     plt.title('Loss Landscape / Optimazation Surface  (2D)')
+     plt.xlabel('Weight')
+     plt.ylabel('Loss w/respect to weights')
+     plt.tick_params(
+         bottom=False,
+         labelbottom=False,
+         left=False,
+         labelleft=False,
+         )
+     plt.show()
+     #+end_src
+
+     #+RESULTS:
+     [[file:../output/images/loss_wr_to_weights.png]]
+
+   - ある (bias を含む) 重みの 1 つのセットを知ったら, モデルの損失を計算できるが,
+     どこに向かって移動すれば損失が小さくなるか (重みの値を調整) を決めるために, 勾配降下法を使用
+   - 多くの場合, 上のグラフのように, 「loss landscape」は完全な凸問題 (convex problem) ではない.
+     そうだっても, 凸問題として扱う
+     - 局所的最小値・極小値ではなく, ただの低損失領域を見つけることがあるが, 実践的にはこれが十分
+
+* 勾配降下法
+  - 次の式で, 全ての次元にわたって勾配を計算できる
+
+       \[\dfrac{df(x)}{dx} = \lim_{h \to 0} \dfrac{f(x + h) - f(x)}{h}\]
+
+    - 1 より大きな次元の場合, 勾配は偏導関数のベクトルになる
+    - この式の問題:
+      1. 勾配の近似 (approximation to the gradient)
+      2. 非常に遅い
+  - 実践的には, 「analytic gradient」を使用
+    - 長所: 「exact」で速い
+    - 短所: 変動変数 (partial derivatives) と 多変数微積分 (multi-variable calculus) のため,
+      実装が非常に難しい
+  - 勾配降下法の短所:
+    - エポックごとに, 1 回のみ重みの変更を行うため, 重みの変更数が限られている
+    - 大きなデータセットには遅くて計算的に無駄
+
+** Psudocode
+   : while True:
+   :     Wgradient = evaluate_gradient(loss, data, W)
+   :     w += -alpha * Wgradient
+
+   - 以上のアルゴリズムは以下の条件のいずれかが満たされるまで繰り返す
+     1. 指定されたエポック数を経過した
+     2. 損失が十分に低くなったか, 訓練の精度が十分に高くなった
+     3. =M= 数のエポックで損失が改善しない
+   - =α= (alpha, learning rate) について
+     - *モデルの最も大事なパラメータ*
+     - 勾配降下法のステップサイズを決める
+     - 最適な =α= の値を探すのに, かなりの時間と調整がかかる
+       - =α= が大きすぎたら:
+         「loss landscape」の周りをバウンスし, 下とことろにいかないでしょう
+       - =α= が少なすぎたら:
+         下のところにいくには, 繰り返しがかかりすぎる
+
+** 実装
+*** インポート
+    #+call: gb-autoreload()
+
+    #+RESULTS:
+
+    #+call: gd-import()
+
+    #+RESULTS:
+
+*** 必要な関数の定義
+    #+name: gd-def-func
+    #+begin_src python
+      def sigmoid_activation(x):
+          return 1.0 / (1 + np.exp(-x))
+
+
+      def sigmoid_deriv(y):
+          # Assuming `y` is output by the `sigmoid_activation` function.
+          return y * (1 - y)
+
+
+      def predict(X, W):
+          preds = sigmoid_activation(X @ W)
+
+          preds[preds <= 0.5] = 0
+          preds[preds > 0] = 1
+
+          return preds
+    #+end_src
+
+    #+RESULTS:
+
+*** データ準備
+    #+name: gd-make-data
+    #+begin_src python
+      (X, y) = make_blobs(n_samples=1000, n_features=2, centers=2,
+                          cluster_std=1.5, random_state=1)
+
+      X = np.c_[X, np.ones(X.shape[0])]
+      y = y.reshape(-1, 1)
+
+      (train_x, test_x, train_y, test_y) = train_test_split(
+          X, y, test_size=0.5, random_state=42)
+    #+end_src
+
+    #+RESULTS: gd-make-data
+
+    #+RESULTS:
+
+    データの可視化.
+    #+begin_src python :file ../output/images/gd-data.png
+      plt.style.use("ggplot")
+      plt.figure()
+      plt.title("Data")
+      plt.scatter(test_x[:, 0], test_x[:, 1], marker='o', c=test_y[:, 0], s=30)
+      plt.show()
+    #+end_src
+
+    #+RESULTS:
+    [[file:../output/images/gd-data.png]]
+
+*** 訓練
+    #+name: gd-calc-preds-error-loss
+    #+begin_src python
+      preds = sigmoid_activation(train_x @ W)
+      error = preds - train_y
+      loss = np.sum(error ** 2)
+      losses.append(loss)
+    #+end_src
+
+    勾配降下更新 (gradient descent update) は, 訓練データと
+    予測のシグモイド derivative のエラーとの内積である.
+    #+name: gd-calc-sigmoid-gradient
+    #+begin_src python
+      d = error * sigmoid_deriv(preds)
+      gradient = train_x.T @ d  # すべてのデータの 1 つの特徴に対して, 対応する「d」にかける
+    #+end_src
+
+    ここは勾配降下法が実際に起きる大事なところである.
+    勾配の値に引かれることによって, 重みが勾配の負の方向に向かって移動する.
+    #+name: gd-weight-update
+    #+begin_src python
+      W += -alpha * gradient
+
+      if epoch == 0 or (epoch + 1) % 5 == 0:
+          print(f'[INFO] epoch={epoch + 1}, loss={loss:.7f}')
+    #+end_src
+
+
+    #+begin_src python :noweb yes :var epochs=100 alpha=0.01
+      W = np.random.randn(X.shape[1], 1)
+      losses = []
+
+      for epoch in range(epochs):
+
+          <<gd-calc-preds-error-loss>>
+
+          <<gd-calc-sigmoid-gradient>>
+
+          <<gd-weight-update>>
+    #+end_src
+
+    #+RESULTS:
+    #+begin_example
+      [INFO] epoch=1, loss=165.9857161
+      [INFO] epoch=5, loss=6.2982133
+      [INFO] epoch=10, loss=3.0371394
+      [INFO] epoch=15, loss=1.7055124
+      [INFO] epoch=20, loss=1.1780290
+      [INFO] epoch=25, loss=0.9228780
+      [INFO] epoch=30, loss=0.7756470
+      [INFO] epoch=35, loss=0.6811074
+      [INFO] epoch=40, loss=0.6169217
+      [INFO] epoch=45, loss=0.5722473
+      [INFO] epoch=50, loss=0.5407017
+      [INFO] epoch=55, loss=0.5178736
+      [INFO] epoch=60, loss=0.5005604
+      [INFO] epoch=65, loss=0.4865677
+      [INFO] epoch=70, loss=0.4745386
+      [INFO] epoch=75, loss=0.4637109
+      [INFO] epoch=80, loss=0.4536837
+      [INFO] epoch=85, loss=0.4442495
+      [INFO] epoch=90, loss=0.4352975
+      [INFO] epoch=95, loss=0.4267631
+      [INFO] epoch=100, loss=0.4186037
+    #+end_example
+
+*** 評価とグラフ
+    #+name: gd-evaluate
+    #+begin_src python
+      preds = predict(test_x, W)
+      print(classification_report(test_y, preds))
+    #+end_src
+
+    #+RESULTS:
+    :               precision    recall  f1-score   support
+    :
+    :            0       1.00      1.00      1.00       250
+    :            1       1.00      1.00      1.00       250
+    :
+    :    micro avg       1.00      1.00      1.00       500
+    :    macro avg       1.00      1.00      1.00       500
+    : weighted avg       1.00      1.00      1.00       500
+    :
+
+    #+name: gd-plot-loss
+    #+begin_src python
+      plt.style.use("ggplot")
+      plt.plot(range(0, epochs), losses)
+      plt.title("Training Loss")
+      plt.xlabel("Epoch #")
+      plt.ylabel("Loss")
+      plt.show()
+    #+end_src
+
+    #+name: gd-plot-loss[:file ../output/images/gd-result.png]
+
+    #+RESULTS:
+
+
+    結果を見ると, 認識が「100%」の精度で行わえるとわかる. 理由:
+    1) データセットが直線分離可能
+    2) 勾配降下法は低い損失の領域に辿り着くことができる
+
+* 確率勾配降下法
+  # 以下を整理
+  - 全体のデータではなく, 小さなバッチのデータの勾配を計算し, 重みを変更
+  - このアルゴリズムははるか前に紹介されたが, 深層学習の訓練を行うのに,
+    最も大事なアルゴリズムと考えられる
+  - 長所:
+    - 勾配に沿って, より多くのステップを取ることができる
+    - 損失と精度に悪い影響を与えず, 収束が早くなる
+  - 短所:
+    - 重みのアップデータが「noisy」になる
+  - ほとんどすべての深層学習は, 非常に重要な 1 つのアルゴリズムの確率勾配降下法 (Stochastic Gradient Descent - SGD)
+    によって行われる ー Goodfellow et al.
+  - an optimization algorithm
+  - the process of minimizing a function by following the gradients of the cost
+    function
+    - done by knowing the form of the cost and derivative, and then move
+      downhill in the direction of the gradient
+
+  - weights of the model is updated (optimized) every time one image is shown
+    and predicted by the model during training phase
+
+* References
+  - [[https://machinelearningmastery.com/implement-perceptron-algorithm-scratch-python/][How To Implement The Perceptron Algorithm From Scratch In Python]]
+
+** Pseudocode
+   : while True:
+   :     batch = next_training_batch(data, 256)
+   :     Wgradient = evaluate_gradient(loss, batch, W)
+   :     w += -alpha * Wgradient
+
+** バッチパラメータについて
+   - アルゴリズムはバッチに敏感なため, 訓練データを必ずランダム
+   - バッチサイズは普通 > 1
+     - パラメータ更新のばらつきを減らし, より安定した収束を招く
+     - 内部線形代数最適化ライブラリをより効率的にするために, 2 乗のバッチサイズが望ましい
+   - あまり気にしなくても良いハイパパラメータが典型的なバッチサイズは: 32, 64, 128, 256
+   - GPU を使用する場合:
+     GPU に収められる訓練データを検討し, バッチが GPU に収まるように, 最も近い 2 乗を
+     バッチサイツとして使う (内部線形代数最適化ライブラリを効率的にする)
+   - CPU を使用する場合:
+     上に述べている典型的なバッチサイズを使用すれば良い
+
+** 実装
+   以下のように, 予想通り, SGD の実装が, GD の実装とだいたい同じ.
+
+   #+call: gb-autoreload()
+
+   #+RESULTS:
+
+   #+call: gd-import()
+
+   #+RESULTS:
+
+   #+call: gd-def-func()
+
+   #+RESULTS:
+
+   バッチを作るために, 以下の関数が必要.
+   #+begin_src python
+     def next_batch(X, y, batch_size):
+         for i in range(0, X.shape[0], batch_size):
+             yield (X[i:i + batch_size], y[i:i + batch_size])
+   #+end_src
+
+   #+RESULTS:
+
+   #+call: gd-make-data()
+
+   #+RESULTS:
+
+   以下は, 訓練のブロック.
+
+   #+name: sgd-calc-preds-error-loss
+   #+begin_src python
+     preds = sigmoid_activation(batch_x @ W)
+     error = preds - batch_y
+     epoch_loss.append(np.sum(error ** 2))
+   #+end_src
+
+
+   勾配降下更新 (gradient descent update) は, 訓練データと予測シのグモイド derivative のエラーとの内積である.
+   #+name: sgd-calc-sigmoid-gradient
+   #+begin_src python
+     d = error * sigmoid_deriv(preds)
+     gradient = batch_x.T @ d  # すべてのデータの 1 つの特徴に対して, 対応する「d」にかける
+   #+end_src
+
+   #+name: sgd-weight-update
+   #+begin_src python
+     W += -alpha * gradient
+   #+end_src
+
+   #+begin_src python :noweb yes :var epochs=100 alpha=0.01 batch_size=32
+     W = np.random.randn(X.shape[1], 1)
+     losses = []
+
+     for epoch in range(epochs):
+         epoch_loss = []
+         for batch_x, batch_y in next_batch(train_x, train_y, batch_size):
+             <<sgd-calc-preds-error-loss>>
+
+             <<sgd-calc-sigmoid-gradient>>
+
+             <<sgd-weight-update>>
+
+         loss = np.average(epoch_loss)
+         losses.append(loss)
+         if epoch == 0 or (epoch + 1) % 5 == 0:
+             print(f'[INFO] epoch={epoch + 1}, loss={loss:.7f}')
+   #+end_src
+
+   #+RESULTS:
+   :RESULTS:
+   # [goto error]
+   : 
+   : NameErrorTraceback (most recent call last)
+   : <ipython-input-1-81a6abcf47c6> in <module>
+   :       2 alpha=0.01
+   :       3 batch_size=32
+   : ----> 4 W = np.random.randn(X.shape[1], 1)
+   :       5 losses = []
+   :       6 
+   : 
+   : NameError: name 'np' is not defined
+   :END:
+
+   #+RESULTS
+   #+begin_example
+     [INFO] epoch=1, loss=19.8605841
+     [INFO] epoch=5, loss=15.8195434
+     [INFO] epoch=10, loss=15.7108056
+     [INFO] epoch=15, loss=15.6703112
+     [INFO] epoch=20, loss=15.6348695
+     [INFO] epoch=25, loss=14.5684756
+     [INFO] epoch=30, loss=0.0244063
+     [INFO] epoch=35, loss=0.0194417
+     [INFO] epoch=40, loss=0.0181334
+     [INFO] epoch=45, loss=0.0173840
+     [INFO] epoch=50, loss=0.0167981
+     [INFO] epoch=55, loss=0.0162856
+     [INFO] epoch=60, loss=0.0158187
+     [INFO] epoch=65, loss=0.0153866
+     [INFO] epoch=70, loss=0.0149836
+     [INFO] epoch=75, loss=0.0146060
+     [INFO] epoch=80, loss=0.0142511
+     [INFO] epoch=85, loss=0.0139166
+     [INFO] epoch=90, loss=0.0136007
+     [INFO] epoch=95, loss=0.0133017
+     [INFO] epoch=100, loss=0.0130182
+   #+end_example
+
+   評価.
+
+   #+call: gd-evaluate()
+
+   #+RESULTS:
+   :               precision    recall  f1-score   support
+   :
+   :            0       1.00      1.00      1.00       250
+   :            1       1.00      1.00      1.00       250
+   :
+   :    micro avg       1.00      1.00      1.00       500
+   :    macro avg       1.00      1.00      1.00       500
+   : weighted avg       1.00      1.00      1.00       500
+   :
+
+   #+call: gd-plot-loss[:file ../output/images/sgd-result.png]()
+
+   #+RESULTS:
+[[file:../output/images/sgd-result.png]]
+
+* その他
+  以下は大事そう (特に Momentum). 詳細は, DL4CV_StarterBundle の 9.3.1 から読んでみる.
+
+** Momentum
+
+** Nesterov's Acceleration
+
+* 課題 [1/3]
+  - [ ] [[gd-calc-preds-error-loss][ここ]]では, =error= を 計算するために, =preds= にしきいの操作が行われない.
+        行わればどうなる? それを検討
+  - [X] [[gd-calc-sigmoid-gradient][勾配]]の計算し方を理解 <<kadai:2>>
+  - [ ] Adrian のソースコードを使い, 僕が得た実験の結果と彼の結果を比べる
+* 参照
+  - https://machinelearningmastery.com/implement-logistic-regression-stochastic-gradient-descent-scratch-python/
+    ここで, [[kadai:2]] の問題を解決できた (ある程度)
+  - https://mccormickml.com/2014/03/04/gradient-descent-derivation/

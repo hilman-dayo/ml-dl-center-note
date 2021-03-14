@@ -1,0 +1,7 @@
+This is the note that I made on my journey to Deep Learning.
+It is not complete and really written just for me to understand (plus, most of it is in Japanese).
+
+I am using the powerful emacs + org-mode in order to write my note and code.
+You can think of this setup as jupyter notebook, but on steroid.
+
+I am slowly in my way of making the note more complete and understandable.

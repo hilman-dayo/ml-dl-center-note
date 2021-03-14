@@ -1,0 +1,29 @@
+# -*- org-preview-latex-image-directory: "../output/ltximages/" -*-
+
+#+title: ReLU
+
+* 概念
+  - 非飽和ニューロン
+
+* 実装
+  \[
+    h(x) = \begin{cases} x & (x > 0) \\ 0 & (x \leq 0) \end{cases}
+  \]
+
+
+  #+begin_src python :session relu :file ../output/images/relu.png :async yes
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+
+    def relu(x):
+        return np.maximum(0, x)
+
+    x = np.linspace(-6, 6, 100)
+    plt.figure(figsize=(20, 10))
+    plt.plot(x, relu(x))
+    plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/relu.png]]

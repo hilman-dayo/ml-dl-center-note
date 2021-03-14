@@ -1,0 +1,12 @@
+#+title: Skip Connections
+
+* 概念
+  - resnet が使っている
+  - 今, よく使われているめそっぢ
+
+* 役割
+  - 深い CNN が精度が落ちないように
+  - 逆伝播が簡易にできるように
+
+* 参考
+  - https://www.youtube.com/watch?v=fTw3K8D5xDs

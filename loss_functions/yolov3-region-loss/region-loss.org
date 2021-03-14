@@ -1,0 +1,411 @@
+#+property: header-args:python :session region-loss :async yes :exports none
+
+#+begin_src python
+  import pandas as pd
+  import torch
+  import math
+  from torch import nn
+#+end_src
+
+
+* データ準備
+  TODO: 分析できる Output を作る?
+
+  Ground Truth.
+  #+begin_src python
+    img_dim = (1080, 760)
+    class_label = ["dog", "cat", "human"]  # Blue, Green, Red
+    n_batch = 2
+
+    img_1 = pd.DataFrame({
+        "image": ["image1"] * 3,
+        "x_top_left": [20, 200, 600],
+        "y_top_left": [20, 600, 100],
+        "width": [20, 80, 300],
+        "height": [20, 100, 400],
+        "class_label": ["dog", "cat", "human"],
+        "batch_number": [0, 0, 0],
+        "class_id": [0, 1, 2],
+        "ignore": [False, False, False],
+    })
+
+    img_2 = pd.DataFrame({
+        "image": ["image2"] * 2,
+        "x_top_left": [40, 700],
+        "y_top_left": [30, 600],
+        "width": [40, 300],
+        "height": [30, 100],
+        "class_label": ["cat", "cat"],
+        "batch_number": [1, 1],
+        "class_id": [1, 1],
+        "ignore": [False, False],
+    })
+
+    target = pd.concat([img_1, img_2], ignore_index=True)
+  #+end_src
+
+  #+RESULTS:
+
+  #+begin_src python
+    preds = [torch.rand([n_batch, 3 * (len(class_label) + 5), i, i]) for i in [13, 26, 52]]
+  #+end_src
+
+  #+RESULTS:
+
+
+* 実装
+
+** RegionLoss
+*** 準備
+    #+begin_src python
+      num_classes = len(class_label)
+      stride = 13
+      anchors = [(116, 90), (156, 198), (373, 326)]
+      num_anchors = len(anchors)
+      anchor_step = len(anchors[0])
+      anchors = torch.tensor(anchors, dtype=torch.float, requires_grad=False)
+      seen = torch.tensor(0)
+
+      coord_scale = 1.0
+      noobject_scale = 1.0
+      object_scale = 5.0
+      class_scale = 1.0
+
+      thresh = 0.6
+      coord_prefill = 12800
+
+      mse = nn.MSELoss(reduction="sum")
+      cel = nn.CrossEntropyLoss(reduction="sum")
+    #+end_src
+
+    #+RESULTS:
+
+*** アルゴリズム
+**** utils
+     #+begin_src python
+       def bbox_ious(boxes1, boxes2):
+           """ Compute IOU between all boxes from ``boxes1`` with all boxes from ``boxes2``.
+
+           Args:
+               boxes1 (torch.Tensor): List of bounding boxes
+               boxes2 (torch.Tensor): List of bounding boxes
+
+           Returns:
+               torch.Tensor[len(boxes1) X len(boxes2)]: IOU values
+
+           Note:
+               Tensor format: [[xc, yc, w, h],...]
+           """
+           b1x1, b1y1 = (boxes1[:, :2] - (boxes1[:, 2:4] / 2)).split(1, 1)
+           b1x2, b1y2 = (boxes1[:, :2] + (boxes1[:, 2:4] / 2)).split(1, 1)
+           b2x1, b2y1 = (boxes2[:, :2] - (boxes2[:, 2:4] / 2)).split(1, 1)
+           b2x2, b2y2 = (boxes2[:, :2] + (boxes2[:, 2:4] / 2)).split(1, 1)
+
+           dx = (b1x2.min(b2x2.t()) - b1x1.max(b2x1.t())).clamp(min=0)
+           dy = (b1y2.min(b2y2.t()) - b1y1.max(b2y1.t())).clamp(min=0)
+           intersections = dx * dy
+
+           areas1 = (b1x2 - b1x1) * (b1y2 - b1y1)
+           areas2 = (b2x2 - b2x1) * (b2y2 - b2y1)
+           unions = (areas1 + areas2.t()) - intersections
+
+           return intersections / unions
+
+
+       def bbox_wh_ious(boxes1, boxes2):
+           """ Shorter version of :func:`lightnet.network.loss._regionloss.bbox_ious`
+           for when we are only interested in W/H of the bounding boxes and not X/Y.
+
+           Args:
+               boxes1 (torch.Tensor): List of bounding boxes
+               boxes2 (torch.Tensor): List of bounding boxes
+
+           Returns:
+               torch.Tensor[len(boxes1) X len(boxes2)]: IOU values when discarding X/Y offsets (aka. as if they were zero)
+
+           Note:
+               Tensor format: [[xc, yc, w, h],...]
+           """
+           b1w = boxes1[:, 2].unsqueeze(1)
+           b1h = boxes1[:, 3].unsqueeze(1)
+           b2w = boxes2[:, 2]
+           b2h = boxes2[:, 3]
+
+           intersections = b1w.min(b2w) * b1h.min(b2h)
+           unions = (b1w * b1h) + (b2w * b2h) - intersections
+
+           return intersections / unions
+     #+end_src
+
+     #+RESULTS:
+
+**** 予測できた値の処理
+     アルゴリズム用の変数
+     #+begin_src python
+       training = False                # ?
+       output = preds[0]
+       nB = output.data.size(0)
+       nA = num_anchors
+       nC = num_classes
+       nH = output.data.size(2)
+       nW = output.data.size(3)
+       nPixels = nH * nW
+       device = torch.device("cpu")
+
+       # XXX: なにこれ?
+       if seen is not None:
+           # seen = torch.tensor(seen)
+           seen = seen.clone().detach()
+       elif training:
+           seen += nB
+       print("output shape:", output.shape)
+     #+end_src
+
+     #+RESULTS:
+     : output shape: torch.Size([2, 24, 13, 13])
+
+
+     Yolo の結果から, x.sigmoid, y.sigmoid, w, h, conf, cls を抽出.
+     =output= から, 以下を作り出す.
+     - =coord= → nB, nA, coordinates[x.sigmoid, y.sigmoid, w, h], nPixels
+     - =conf= → nB, nA, nPixels[obj_score]
+     - =cls= → nB * nA * nPixels, nC
+     #+begin_src python
+       # Output
+       output = output.view(nB, nA, -1, nPixels)
+       print(f"output shape:", output.shape)
+
+       # coord
+       coord = torch.zeros_like(output[:, :, :4])
+       print("coord shape:", coord.shape)
+       coord[:, :, :2] = output[:, :, :2].sigmoid()
+       coord[:, :, 2:4] = output[:, :, 2:4]
+       conf = output[:, :, 4].sigmoid()
+       print("conf shape:", conf.shape)
+       if nC > 1:
+           cls = output[:, :, 5:].contiguous().view(nB * nA, nC, nPixels)
+           print(f"1. cls shape {cls.shape}")
+           # XXX: reshape のときに, 軸の値はどうやって影響を与えるか?
+           cls = cls.transpose(1, 2).contiguous().view(-1, nC)
+           print(f"2. cls shape {cls.shape}")
+     #+end_src
+
+     #+RESULTS:
+     : output shape: torch.Size([2, 3, 8, 169])
+     : coord shape: torch.Size([2, 3, 4, 169])
+     : conf shape: torch.Size([2, 3, 169])
+     : 1. cls shape torch.Size([6, 3, 169])
+     : 2. cls shape torch.Size([1014, 3])
+
+
+     =coord= を使って, 本当のボックスの値を格納する =pred_boxes= を作成.
+     #+begin_src python
+       # 行列は「cls」と同じ
+       pred_boxes = torch.FloatTensor(nB * nA * nPixels, 4)
+       print("pred_boxes shape:", pred_boxes.shape)
+
+       # S ** 2 のようないグリッドを作成
+       # ちなみに, これは行列ではなく, 画像の座標を作っている (x, y)
+       lin_x = torch.linspace(0, nW - 1, nW).repeat(nH, 1).view(nPixels).to(device)
+       lin_y = torch.linspace(0, nH - 1, nH).view(nH, 1).repeat(1, nW).view(nPixels).to(device)
+       print("lin_x shape:", lin_x.shape)
+       print("lin_y shape:", lin_y.shape)
+
+       anchor_w = anchors[:, 0].contiguous().view(nA, 1).to(device)
+       anchor_h = anchors[:, 1].contiguous().view(nA, 1).to(device)
+       print("anchor_w shape:", anchor_w.shape)
+       print("anchor_h shape:", anchor_h.shape)
+
+       pred_boxes[:, 0] = (coord[:, :, 0].detach() + lin_x).view(-1)
+       pred_boxes[:, 1] = (coord[:, :, 1].detach() + lin_y).view(-1)
+       pred_boxes[:, 2] = (coord[:, :, 2].detach().exp() * anchor_w).view(-1)
+       pred_boxes[:, 3] = (coord[:, :, 3].detach().exp() * anchor_h).view(-1)
+       pred_boxes = pred_boxes.cpu()
+     #+end_src
+
+     #+RESULTS:
+     : pred_boxes shape: torch.Size([1014, 4])
+     : lin_x shape: torch.Size([169])
+     : lin_y shape: torch.Size([169])
+     : anchor_w shape: torch.Size([3, 1])
+     : anchor_h shape: torch.Size([3, 1])
+
+**** 真値を bb から抽出し, 処理
+     パラメータ
+     #+begin_src python :noweb yes
+       def build_target_brambox(pred_boxes, ground_truth, nB, nH, nW):
+           nA = num_anchors
+           nAnchors = nA * nH * nW
+           nPixels = nH * nW
+
+           <<init-mask-for-loss-function>>
+           <<init-gt-tensors>>
+           <<what-is-this?>>
+           <<set-_anchors>>
+
+           # 画像ごとに
+           for b, gt_filtered in ground_truth.groupby("batch_number", sort=False):
+               <<make-gt-based-on-stride>>
+               <<matched-conf-mask-to-zero>>
+               <<best-anchor-for-each-gt>>
+               <<masks-and-target-values-for-gt>>
+
+           <<return>>
+
+
+
+       coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls = (
+           build_target_brambox(pred_boxes, target, nB, nH, nW)
+       )
+
+       coord_mask = coord_mask.expand_as(tcoord).to(device).sqrt()
+       tcoord = tcoord.to(device)
+       conf_mask = conf_mask.to(device).sqrt()
+       tconf = tconf.to(device)
+
+       if nC > 1:
+           tcls = tcls[cls_mask].view(-1).long().to(device)
+           cls_mask = cls_mask.view(-1, 1).repeat(1, nC).to(device)
+           _cls = cls[cls_mask].view(-1, nC)
+
+       # 2つの物体が同じマスク座標とアンカーボックス座標をシェアするため, 1個足りない
+       print("Number of detected gt:", tcls.numel())
+     #+end_src
+
+     #+RESULTS:
+     : Number of detected gt: 4
+
+
+***** ブロック
+      #+name: init-mask-for-loss-function
+      #+begin_src python
+        coord_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+        conf_mask = torch.ones(nB, nA, nH, nW, requires_grad=False) * noobject_scale
+        cls_mask = torch.zeros(nB, nA, nH, nW, dtype=torch.bool, requires_grad=False)
+      #+end_src
+
+      #+name: init-gt-tensors
+      #+begin_src python
+        tcoord = torch.zeros(nB, nA, 4, nH, nW, requires_grad=False)
+        tconf = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+        tcls = torch.zeros(nB, nA, nH, nW, requires_grad=False)
+      #+end_src
+
+      =tcoord= を触っているが, 意味わからない
+      #+name: what-is-this?
+      #+begin_src python
+        if training and seen < coord_prefill:
+            coord_mask.fill_(math.sqrt(.01 / coord_scale))
+            if anchor_step == 4:
+                tcoord[:, :, 0] = (anchors[:, 2].contiguous().view(1, nA, 1, 1)
+                                   .repeat(nB, 1, 1, nPixels))
+                tcoord[:, :, 1] = (anchors[:, 3].contiguous().view(1, nA, 1, 1)
+                                   .repeat(nB, 1, 1, nPixels))
+            else:
+                tcoord[:, :, 0].fill_(0.5)
+                tcoord[:, :, 1].fill_(0.5)
+      #+end_src
+
+      あまりわからないが, =anchors= を [nA X 2] から [nA X 4] に標準化.
+      #+name: set-_anchors
+      #+begin_src python
+        if anchor_step == 4:
+            _anchors = anchors.clone()
+            _anchors[:, :2] = 0
+        else:
+            _anchors = torch.cat([torch.zeros_like(anchors), anchors], dim=1)
+      #+end_src
+
+      #+name: make-gt-based-on-stride
+      #+begin_src python
+        cur_pred_boxes = pred_boxes[b * nAnchors:(b + 1) * nAnchors]
+
+        gt = torch.empty((gt_filtered.shape[0], 4), requires_grad=False)
+        gt[:, 2] = torch.from_numpy(gt_filtered.width.values).float() / stride
+        gt[:, 3] = torch.from_numpy(gt_filtered.height.values).float() / stride
+        gt[:, 0] = torch.from_numpy(gt_filtered.x_top_left.values).float() / stride + (gt[:, 2] / 2)
+        gt[:, 1] = torch.from_numpy(gt_filtered.y_top_left.values).float() / stride + (gt[:, 3] / 2)
+      #+end_src
+
+      #+name: matched-conf-mask-to-zero
+      #+begin_src python
+        # gt X cur_pred_boxes の行列を獲得 (サイズがけっこう大きい)
+        # アンカーとクラスにかかわらず, IOU は thresh より大きければ, 「0」をマーク.
+        iou_gt_pred = bbox_ious(gt, cur_pred_boxes)  # ここに, クラスの情報が入っていない
+        mask = (iou_gt_pred > thresh).sum(0) >= 1
+        conf_mask[b][mask.view_as(conf_mask[b])] = 0
+      #+end_src
+
+      #+name: best-anchor-for-each-gt
+      #+begin_src python
+        iou_gt_anchors = bbox_wh_ious(gt, _anchors)
+        _, best_anchors = iou_gt_anchors.max(1)
+      #+end_src
+
+      #+name: masks-and-target-values-for-gt
+      #+begin_src python
+        nGT = gt.shape[0]
+        # 中心の値を左上にする
+        gi = gt[:, 0].clamp(0, nW - 1).long()
+        gj = gt[:, 1].clamp(0, nH - 1).long()
+
+        # GTのところにobject scale を入れる
+        conf_mask[b, best_anchors, gj, gi] = object_scale
+        # tconf にGTがあるところにiouを入れる
+        tconf[b, best_anchors, gj, gi] = iou_gt_pred.view(nGT, nA, nH, nW)[torch.arange(nGT), best_anchors, gj, gi]
+
+        coord_mask[b, best_anchors, gj, gi] = 2 - (gt[:, 2] * gt[:, 3]) / nPixels
+        # Yolo の出力のようにGTの値を変換
+        tcoord[b, best_anchors, 0, gj, gi] = gt[:, 0] - gi.float()
+        tcoord[b, best_anchors, 1, gj, gi] = gt[:, 1] - gj.float()
+        tcoord[b, best_anchors, 2, gj, gi] = (gt[:, 2] / anchors[best_anchors, 0]).log()
+        tcoord[b, best_anchors, 3, gj, gi] = (gt[:, 3] / anchors[best_anchors, 1]).log()
+
+        cls_mask[b, best_anchors, gj, gi] = 1
+        tcls[b, best_anchors, gj, gi] = torch.from_numpy(gt_filtered.class_id.values).float()
+
+        if gt_filtered.ignore.any():
+            ignore_mask = torch.from_numpy(gt_filtered.ignore.values)
+            gi = gi[ignore_mask]
+            gj = gj[ignore_mask]
+            best_anchors = best_anchors[ignore_mask]
+
+            conf_mask[b, best_anchors, gj, gi] = 0
+            coord_mask[b, best_anchors, gj, gi] = 0
+            cls_mask[b, best_anchors, gj, gi] = 0
+      #+end_src
+
+      #+name: return
+      #+begin_src python
+        return (
+            coord_mask.view(nB, nA, 1, nPixels),
+            conf_mask.view(nB, nA, nPixels),
+            cls_mask.view(nB, nA, nPixels),
+            tcoord.view(nB, nA, 4, nPixels),
+            tconf.view(nB, nA, nPixels),
+            tcls.view(nB, nA, nPixels)
+        )
+      #+end_src
+
+
+**** ロスを計算
+     #+begin_src python
+       loss_coord = coord_scale * mse(coord * coord_mask, tcoord * coord_mask) / (2 * nB)
+       loss_conf = mse(conf * conf_mask, tconf * conf_mask) / (2 * nB)
+       if nC > 1:
+           if tcls.numel() > 0:
+               loss_class = class_scale * cel(_cls, tcls) / nB
+           else:
+               loss_class = torch.tensor(0.0, device=device)
+       else:
+           loss_class = torch.tensor(0.0, device=device)
+
+       loss_total = loss_coord + loss_conf + loss_class
+     #+end_src
+
+     #+RESULTS:
+
+
+* 参考
+  - https://www.programmersought.com/article/58215826933/
+  - https://stats.stackexchange.com/questions/287486/yolo-loss-function-explanation

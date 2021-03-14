@@ -1,0 +1,136 @@
+#+property: header-args:python :session roc-pr :async yes :results output
+
+途中の「Precision-Recall Curves in Python」に止まった.
+
+#+name: -import
+#+begin_src python
+  from sklearn.datasets import make_classification
+  from sklearn.linear_model import LogisticRegression
+  from sklearn.model_selection import train_test_split
+  from sklearn.metrics import roc_curve, roc_auc_score, precision_recall_curve, f1_score, auc
+  import matplotlib.pyplot as plt
+#+end_src
+
+#+name: -normal-setup
+#+begin_src python
+  x, y = make_classification(n_samples=1000, n_classes=2, random_state=1)
+  train_x, test_x, train_y, test_y = train_test_split(
+      x, y, test_size=0.5, random_state=2)
+  ns_probs = [0 for _ in range(len(test_y))]  # no skill
+
+  model = LogisticRegression(solver='lbfgs')
+  model.fit(train_x, train_y)
+  lr_probs = model.predict_proba(test_x)[:, 1]  # n_class=1 の結果だけ格納
+#+end_src
+
+* 確率について
+  - 物体のクラスを直接に予測可能だが, 確率で予測したら,
+    予測したクラスのしきい値を調整可能
+    - たとえば, 0.5 以上でないと, 正として認めない
+  - バイナリ問題では, 2 つのタイプのアルゴリズムによるミスが存在
+    - False Positive (予測時に出るミス. Positive は「予測できたもの」を指摘)
+    - False Negative
+  - しきい値の調整によって, 以上の 2 つの間違いのバランスを決められる
+    - たとえば, False Negative を減らしたかったり
+
+* ROC 曲線
+  - Receiver Operating Characteristic Curve
+  - いくつかのしきい値の false positive rate (x) vs true positive rate (y) 曲線
+    - いわば, false alarm rate vs the hit rate
+  - true positive rate: Recall/Sensitivity
+  - specificity = true negatives / (true negatives + false positives)
+    - Negative バージョンの Recall として考えられる
+  - false positive rate = false positives / (false positives + true negatives)
+    - negatives データに対しての positive として判断してしまった率
+    - inverted specificity として知られている
+      - false positive rate = 1 - specificity
+  - skillful model
+    - (0, 1) としてプロットされる
+    - 左下 → 左上 → 右上 の線として表される
+    - AUC = 1
+  - no-skill classifier グラフ上の特性
+    - (0.5, 0.5) としてプロットされる
+    - しきい値ごとに左下から右上への斜め線として表される
+    - AUC = 0.5
+
+** ROC でわかることができること
+   - 別のモデルの ROC を直接に比較可能
+   - AUC で, モデルの能力を納得可能
+   - x-axis: 小さいほど, false positives ↓,  true negatives ↑
+   - y-axis: 大きいほど,  true positives ↑, false negatives ↓
+
+** 実装
+   #+call: -import()
+
+   #+RESULTS:
+
+   #+call: -normal-setup()
+
+   #+RESULTS:
+
+   ROC の面積.
+   #+begin_src python
+     ns_auc = roc_auc_score(test_y, ns_probs)
+     lr_auc = roc_auc_score(test_y, lr_probs)
+     print(f"No skill: ROC AUC= {ns_auc:.3f}")
+     print(f"Logistic: ROC AUC= {lr_auc:.3f}")
+   #+end_src
+
+   #+RESULTS:
+   : No skill: ROC AUC= 0.500
+   : Logistic: ROC AUC= 0.903
+
+   ROC の曲線.
+   #+begin_src python :file output/roc.png
+     ns_fpr, ns_tpr, ns_thresh = roc_curve(test_y, ns_probs)
+     lr_fpr, lr_tpr, lr_thresh = roc_curve(test_y, lr_probs)
+     plt.plot(ns_fpr, ns_tpr, linestyle="--", label="No Skill")
+     plt.plot(lr_fpr, lr_tpr, marker=".", label="Logistic")
+     plt.xlabel("False Positive Rate")
+     plt.ylabel("True Positive Rate")
+     plt.legend()
+     plt.show()
+   #+end_src
+
+   #+RESULTS:
+   [[file:output/roc.png]]
+
+* Precision-Recall 曲線
+  - x 軸: precision
+  - y 軸: recall
+
+** 実装
+   #+call: -import()
+
+   #+RESULTS:
+
+   #+call: -normal-setup()
+
+   #+RESULTS:
+
+   #+begin_src python
+     yhat = model.predict(test_x)    # .probaと直接にクラスの値を予測
+     lr_precision, lr_recall, lr_thresh = precision_recall_curve(test_y, lr_probs)
+     lr_f1, lr_auc = f1_score(test_y, yhat), auc(lr_recall, lr_precision)
+     print(f"Logistic: f1={lr_f1:.3f}% auc={lr_auc:.3f}%")
+   #+end_src
+
+   #+RESULTS:
+   : Logistic: f1=0.841% auc=0.898%
+
+   #+begin_src python :file output/pr.png
+     no_skill = len(test_y[test_y==1]) / len(test_y)
+   #+end_src
+
+* まとめ
+  - ROC Curve
+    - 異なる確率しきい値を使って, モデルの True Positive Rate と False Positive Rate の
+      トレードオフを表示
+    - データセットのクラスがバランスのとき使うのに適宜が与える
+  - PR Curve
+    - 異なる確率しきい値を使って, モデルの True Positive Rate と Positive Predictive Value の
+      トレードオフを表示
+    - データセットのクラスがインバランスのとき使うのに適宜が与える
+
+* 参照
+  - https://machinelearningmastery.com/roc-curves-and-precision-recall-curves-for-classification-in-python/

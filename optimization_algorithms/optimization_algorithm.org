@@ -1,0 +1,23 @@
+#+title: 最適化関数
+
+* 概念
+  - 機械学習・ニューラルネットワーク・深層学習の最も重要な要素: 最適化
+  - ニューラルネットワークなどを動かして, データからパターンを学習させる
+
+
+* 機能
+  - モデルの最適な重みセットを探す
+  - パラメータ (重み) の偏微分を取り, エーラを減少するために, パラメータを調整する ← 改善する必要ある
+
+
+      Optimization algorithms are used in order to find the optimum set of
+      variables of the network. A class of search algorithm namely convex optimization
+      use gradient-based methods. It takes the partial derivative with respect to set
+      of parameters and decide how much to adjust the parameters in order to lessen
+      the error. Thus, it will find the optimal values for the set of variables with
+      respect to the loss function supplied(6).
+
+  - 繰り返し:
+    1. パラメータを評価
+    2. ロスを計算
+    3. ロスを最小限できる方向に移動

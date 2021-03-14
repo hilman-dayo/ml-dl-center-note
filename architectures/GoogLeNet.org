@@ -1,0 +1,7 @@
+#+title: GoogLeNet
+
+* 層
+  - 22 層
+
+* 一時
+  - 15.3% of top-5 error

@@ -1,0 +1,190 @@
+#+property: header-args:python :session vggnet :async yes
+#+title: VGGNet
+
+* 概要
+  - オックスフォード大学の Visual Geometry Group (VGG) チーム
+    が作成した 16 層のモデル
+    - これは VGG-16 と呼ばられる
+      (活性化関数, プーリング, Dropout を除け, 数える場合)
+  - 層の数が 11, 13, 19 層のバージョンも存在
+  - 構成がシンプルなため, ディープラーニングの様々な応用手法のベースネットワーク
+    に使用される
+
+* 構成 (VGG-16)
+  - 特徴量を抽出する部分
+  - クラシファイア
+
+* 実行
+** 前準備
+   #+begin_src python
+     import cv2
+     import torch
+     import torchvision
+     from torchvision import models, transforms
+     import numpy as np
+     import json
+     import matplotlib.pyplot as plt
+     from PIL import Image
+     from pathlib import Path
+   #+end_src
+
+   #+RESULTS:
+
+
+   #+begin_src python
+     use_pretrained = True
+     net = models.vgg16(pretrained=use_pretrained)
+     net.eval()
+
+     print(net)
+   #+end_src
+
+   #+RESULTS:
+   #+begin_example
+     VGG(
+       (features): Sequential(
+         (0): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (1): ReLU(inplace=True)
+         (2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (3): ReLU(inplace=True)
+         (4): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+         (5): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (6): ReLU(inplace=True)
+         (7): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (8): ReLU(inplace=True)
+         (9): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+         (10): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (11): ReLU(inplace=True)
+         (12): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (13): ReLU(inplace=True)
+         (14): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (15): ReLU(inplace=True)
+         (16): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+         (17): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (18): ReLU(inplace=True)
+         (19): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (20): ReLU(inplace=True)
+         (21): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (22): ReLU(inplace=True)
+         (23): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+         (24): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (25): ReLU(inplace=True)
+         (26): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (27): ReLU(inplace=True)
+         (28): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+         (29): ReLU(inplace=True)
+         (30): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+       )
+       (avgpool): AdaptiveAvgPool2d(output_size=(7, 7))
+       (classifier): Sequential(
+         (0): Linear(in_features=25088, out_features=4096, bias=True)
+         (1): ReLU(inplace=True)
+         (2): Dropout(p=0.5, inplace=False)
+         (3): Linear(in_features=4096, out_features=4096, bias=True)
+         (4): ReLU(inplace=True)
+         (5): Dropout(p=0.5, inplace=False)
+         (6): Linear(in_features=4096, out_features=1000, bias=True)
+       )
+     )
+   #+end_example
+
+   #+begin_src python
+     n_layer = 0
+     for i in net.modules():
+         if (isinstance(i, torch.nn.modules.conv.Conv2d) or
+             isinstance(i, torch.nn.modules.linear.Linear)):
+             n_layer += 1
+
+     print(f"{n_layer} 層がある.")
+   #+end_src
+
+   #+RESULTS:
+   : 16 層がある.
+
+** データの前処理
+   #+begin_src python
+     class BaseTransform():
+         def __init__(self, resize, mean, std):
+             self.base_transform = transforms.Compose([
+                 transforms.Resize(resize),
+                 transforms.CenterCrop(resize),
+                 transforms.ToTensor(),
+                 transforms.Normalize(mean, std)
+             ])
+
+         def __call__(self, img):
+             return self.base_transform(img)
+   #+end_src
+
+   #+RESULTS:
+
+   #+name: image-path
+   : ../resources/goldenretriever-3724972_640.jpg
+   データの可視化.
+   #+begin_src python :var image_path=image-path
+     img_orig = Image.open(image_path)
+
+     resize = 224                    # VGGがもとめている画像サイズ
+     mean = (0.485, 0.456, 0.225)    # ImageNetデータセットの
+     std = (0.229, 0.224, 0.225)    # ImageNetデータセットの
+     transform = BaseTransform(resize, mean, std)
+     img_transformed = transform(img_orig)
+
+     img_transformed = np.clip(
+         img_transformed.numpy().transpose([1, 2, 0]), 0, 1
+     )
+   #+end_src
+
+   #+RESULTS:
+
+   #+begin_src python :file ../output/images/vgg-data.png
+     fig, axs = plt.subplots(2)
+     fig.suptitle("Image before vs after transformed.")
+     axs[0].imshow(img_orig)
+     axs[1].imshow(img_transformed)
+     plt.show()
+   #+end_src
+
+   #+RESULTS:
+   [[file:../output/images/vgg-data.png]]
+
+   #+name: cls-json-path
+   : ../resources/imagenet_class_index.json
+   #+name: images-dir-path
+   : /tmp/light
+
+** 推論
+   #+begin_src python :var images_dir_path=images-dir-path cls_json_path=cls-json-path
+     class ILSVRCPredictor:
+         def __init__(self, class_index):
+             self.class_index = class_index
+
+         def predict_max(self, out):
+             maxid = np.argmax(out.detach().numpy(), axis=1)
+             return [self.class_index[str(m)][1] for m in maxid]
+
+     ILSVRC_class_index = json.load(open(cls_json_path, "r"))
+     predictor = ILSVRCPredictor(ILSVRC_class_index)
+     resize = 224                    # VGGがもとめている画像サイズ
+     mean = (0.485, 0.456, 0.225)    # ImageNetデータセットの
+     std = (0.229, 0.224, 0.225)    # ImageNetデータセットの
+     transform = BaseTransform(resize, mean, std)
+
+     inputs = []
+     imgs = Path(images_dir_path)
+     if imgs.is_file():
+         imgs = [imgs]
+     else:
+         imgs = list(imgs.glob("*.jpg"))
+
+     for image in imgs:
+         inputs.append(transform(Image.open(image)))
+     inputs = torch.stack(inputs)
+
+     results = predictor.predict_max(net(inputs))
+     print(f"予測結果:\n {results}")
+   #+end_src
+
+   #+RESULTS:
+   : 予測結果:
+   :  ['fox_squirrel', 'thresher', 'hourglass', 'pick', 'cardoon', 'power_drill', 'hourglass', 'Loafer', 'sunscreen', 'whistle', 'rock_beauty', 'whistle', 'nipple', 'oxygen_mask', 'sweatshirt', 'whistle', 'Windsor_tie', 'Windsor_tie', 'whistle', 'black_grouse', 'pick', 'sweatshirt', 'rock_beauty', 'espresso_maker', 'nipple', 'chain_saw', 'nipple', 'chain_saw', 'sweatshirt', 'knee_pad', 'thresher', 'chain_saw', 'pinwheel']

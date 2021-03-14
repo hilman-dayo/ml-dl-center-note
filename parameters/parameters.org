@@ -1,0 +1,5 @@
+
+      Parameters of a network is a set of variables that will need to be
+      changed and adjusted according to the set of data. It is the weight associated
+      to each node inside the network. The aim is to find the optimum set of weights
+      that best describe the training data fed to the network.

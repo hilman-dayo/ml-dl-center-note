@@ -1,0 +1,19 @@
+# -*- org-preview-latex-image-directory: "../output/ltximages/" -*-
+
+#+title: L2 Regularization (L2 正則化)
+
+* 概念
+
+  \[
+  R(W) = \sum_{i} \sum_{j} W_{i, j}^{2}
+  \]
+
+  : penalty = 0
+  :
+  : for i in range(W.shape[0]):
+  :     for j in range(W.shape[1]):
+  :         penalty += (W[i][j] ** 2)
+
+* 課題 [/]
+  - [ ] DL4CV では, このことについて簡単に説明した.
+        詳しい説明は Andrew のコースを参考したほうがいいかも

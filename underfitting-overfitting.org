@@ -1,0 +1,23 @@
+#+title: 過少適合と過剰適合
+
+* 概念
+  - 大事で観察しないといけない
+  - 定義:
+    - Underfitting: モデルが訓練データで十分に低い損失を得られない場合
+    - 過剰適合: NN は訓練データをモデル化しすぎて, 検証データ (validation data) に汎化できない
+  - モデルを訓練するときの目的:
+    - 訓練損失をできるだけ低減
+    - 訓練とテストの損失の差が小さいと確保
+
+** モデルキャパシティ
+
+   [[file:output/images/model-capacity.png]]
+
+
+   - モデルキャパシティの調整
+     - 増加: 層とニューロンをより追加
+     - 減少:
+       1. 層とニューロンを取り除くことによってモデルの複雑さを軽減,
+       2. weight decay, dropout, data augmentation, early stopping などといった regularization 技術を適応
+
+       普通は, 2 番を行う

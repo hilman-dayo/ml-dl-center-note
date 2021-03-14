@@ -1,0 +1,74 @@
+#+property: header-args:python :session mc-svm-loss :async yes
+#+title: Hinge Loss
+
+* 概念
+  - (Linear) Support Vector Machine に触発される
+    - Multi-Class SVM とも呼ばれる?
+  - かなり使われている損失関数
+  - Squared hinge loss バージョンも存在
+  - スコアを余裕として解釈
+
+* 実装
+  以下は 3 つに対するデータの認識スコアー. 値は大きいほど良い.
+  #+NAME: preds
+   |                  | GT dog | GT cat | GT panda |
+   | is a dog score   |   4.36 |   3.76 |    -2.37 |
+   | is a cat score   |   1.33 |   -1.2 |     1.03 |
+   | is a panda score |  -1.01 |  -3.81 |    -2.27 |
+
+
+** 準備
+   #+begin_src python
+     import numpy as np
+   #+end_src
+
+   #+RESULTS:
+
+   #+begin_src python :var preds=preds
+     dog = np.array([1, 0, 0]).reshape(-1, 1)
+     cat = np.array([0, 1, 0]).reshape(-1, 1)
+     panda = np.array([0, 0, 1]).reshape(-1, 1)
+
+     preds = np.array(preds)
+     pred_against_dog = np.array(preds[1:, 1]).reshape(-1, 1).astype("float")
+     pred_against_cat = np.array(preds[1:, 2]).reshape(-1, 1).astype("float")
+     pred_against_panda = np.array(preds[1:, 3]).reshape(-1, 1).astype("float")
+     preds = np.concatenate([pred_against_dog, pred_against_cat, pred_against_panda],
+                            axis=1)
+     gt = np.concatenate([dog, cat, panda], axis=1)
+   #+end_src
+
+   #+RESULTS:
+
+** 計算
+   #+begin_src python
+     delta = 1
+
+     loss_dog = sum(np.maximum(
+         0, pred_against_dog[dog != 1] - pred_against_dog[dog == 1] + delta
+     ))
+     loss_cat = sum(np.maximum(
+         0, pred_against_cat[cat != 1] - pred_against_cat[cat == 1] + delta
+         ))
+     loss_panda = sum(np.maximum(
+         0, pred_against_panda[panda != 1] - pred_against_panda[panda == 1] + delta
+     ))
+
+     print(loss_dog)
+     print(loss_cat)
+     print(loss_panda)
+   #+end_src
+
+   #+RESULTS:
+   : 0.0
+   : 5.96
+   : 5.199999999999999
+
+* 洞察
+  - GT を使って損失を算出する関数ではなさそう
+  - 他のクラスのスコアは当クラスのスコアから設定した余裕より大きく
+    離れたら, 損失はゼロになる
+
+* 参考
+  - https://cs231n.github.io/linear-classify/
+

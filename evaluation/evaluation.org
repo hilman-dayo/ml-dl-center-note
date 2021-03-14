@@ -1,0 +1,28 @@
+* Binary classifiacton
+** Accuracy
+   - すべてのケースに対して, 正しく検出できたものの比率
+   - (TP + TN) / (TP + TN + FP + FN)
+
+** Recall
+   - GT に対しての正しく「正」として検出したものの比率
+     - いわば, 間違っていることをよそに, 目的に対しての性能を定量化
+   - TP / (TP + FN)
+
+** Precision
+   - 「正」と検出されてしまったものに対しての本当に「正」のものの比率
+     - いわば, 検出器自体の性能の定量化
+   - TP / (TP + FP)
+
+** F-score/F-measure
+   - Recall と precision を考慮しながら, 検出器の性能を算出
+   - 高いほど良いと解釈できる
+   - 2 つの計算し方 (実際同じもの)
+     - 2 / (1/Recall) + (1/Precision)
+     - 2 * (Precision * Recall) / (Precision + Recall)
+
+** Accuracy と Recall の関係
+   - 理想的は両方の Accuracy と Recall は 1.0. 意味として
+     - TP = Max で, FN と FP = 0
+   - 実践的に, Precision は 1 のとき, Recall は 0,
+     Recall は 1 のとき, Precision は 1
+     

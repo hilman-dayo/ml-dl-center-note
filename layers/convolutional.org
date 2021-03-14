@@ -1,0 +1,65 @@
+NOTE ON CONVOLUTIONAL LAYER -*- mode: org -*-
+
+* About Convolutional Layer =CONV=
+  - building block of CNN
+  - convolutional layers (the network) learn hierarchically
+  - basically, defined by the presence of the set of filters and activation function
+  - one of the primary methods to reduce spatial input size
+
+  - take an input volume (H_input, W_input, D_input) and output an output volume
+    called activation map (H_output, W_output, K)
+  - these equations must yields an integer
+    - H_output = ((H_input - F + 2P) / S) + 1
+    - W_output = ((W_input - F + 2P) / S) + 1
+
+  - example when input volume is 5x5
+    - when K=3, F=3, S=1 P=0, output volume will be 3x3
+    - when K=3, F=3, S=1 P=1, output volume will be 5x5
+
+* Parameters
+** Depth of Learnable Filters or Kernels =K=
+   - each filter has a width and height (normally square)
+     - implicitly, each filter has their own depth which is the same with the
+       depth of the input volume
+   - normally small =F=
+   - =K= set the depth of the set of filters: (height, width, =K=)
+     - implicitly (height, width, filter_depth, =K=)
+   - thus, depth of the activation map will be =K= too
+   - 深いほど =K= の値がが大きくなる?
+** Receptive Field =F=
+   - each neuron (filter) is connected to only a /local region/ of the input
+     volume (this gives us /local connectivity/
+   - size of the local region is the /receptive field/ of the neuron
+   - effectively, this means =F= is the spatial dimension of the filter (F x F kernel)
+   - 普通は
+     - 最初の層 → F=7 / F=11
+     - 中間層  → 徐々に F=5 に減る
+     - 最後の層 → F=3
+** Stride =S=
+   - control the amount of sliding (left-to-right, top-to-bottom) of the filters
+   - normally, S=1 or S=2
+   - smaller =S=, more overlapping receptive fields and larger output volumes
+   - larger =S=, less overlapping receptive fields and smaller output volumes
+** Zero-padding =P=
+   - control amount of padding we apply
+   - we can "pad" the input volume along the boarders so the output volume
+     spatial dimension matches the input volume
+   - crucial in deep CNN that apply CONV filters consecutively
+     - without zero padding, input volume will decrease too quickly
+
+
+* Activation Map / Output Volume
+  - every entry is an output of a neuron (filter) that "looks" at only a small
+    region of the input
+    - network "learns" filters that activate whey they see a specific type of
+      feature at a given spatial location in the input volume
+      # Can I visualize this (above)?
+  - size is controlled by =K=, =F=, =S= and =P=
+
+** Parameters Controlling size of an output volume
+*** Depth
+*** Stride
+*** Zero-padding
+
+* Visualization
+  - Refer to GD

@@ -1,0 +1,172 @@
+#+property: header-args:python :session bbr :async yes :kernel lightnet-dev
+
+* インポート
+  #+begin_src python
+    import torch
+    from torch.utils.data import Dataset, DataLoader
+    import torch.nn as nn
+    import torch.optim as optim
+    import json
+    import matplotlib.pyplot as plt
+    import cv2
+    import brambox as bb
+    from torchvision import models, transforms
+    from pathlib import Path
+    from PIL import Image
+    from sklearn.model_selection import train_test_split
+  #+end_src
+
+  #+RESULTS:
+
+* データローディング
+  #+name: images-root
+  : ../datasets/caltech101/101_ObjectCategories/airplanes
+  #+name: h5-root
+  : ../datasets/caltech101/annotations_h5/Airplanes_Side_2.h5
+
+  #+begin_src python :var images_root=images-root h5_root=h5-root
+    class AirplanesSide(Dataset):
+        def __init__(self, transforms=None):
+            self.images_name = list(Path(images_name).glob("*.jpg"))
+            self.images = [Image.open(i) for i in self.images_name]
+            self.data = self._prepare_data(h5_root)
+            self.transforms = transforms.Compose([]) if transforms is None else transforms
+
+        def _prepare_data(self, data_path):
+            data = bb.io.load("pandas", data_path)
+            data.rename(columns={"x_top_left": "x1", "y_top_left": "y1"}, inplace=True)
+            data["x2"] = data["x1"] + data["width"]
+            data["y2"] = data["y1"] + data["height"]
+
+            for k in ("width", "height"):
+                data.drop(k, axis=1, inplace=True)
+
+            return data
+
+        def __len__(self):
+            return len(self.images)
+
+        def __getitem__(self, idx):
+            img_path = self.images_name[idx]
+            w, h = img.size()
+
+            d = self.data.query("image == @img_path.stem")[["x1", "y1", "x2", "y2"]]
+            if any(d > 1.0):
+                self.data.loc[d.index, ["x1", "x2"]] /= w
+                self.data.loc[d.index, ["y1", "y2"]] /= h
+                d = self.data.query("image == @img_path.stem")[["x1", "y1", "x2", "y2"]]
+
+            return self.transforms(self.images(idx)), d
+  #+end_src
+
+  #+RESULTS:
+
+
+  #+name: batch-size
+  : 32
+
+  データの初期化.
+  #+begin_src python :var batch_size=batch-size
+    airplanes_dataset = AirplaneseSide(transforms.Compose(
+        [transforms.ToTensor()]))
+    train_subset, test_subset = train_test_split(
+        range(len(airplanes_dataset)), test_size=0.4, random_state=42
+    )
+  #+end_src
+
+  #+RESULTS:
+
+
+* ネットワーク
+
+  #+begin_src python
+    class VGG16ObjectDetector(nn.Module):
+        def __init__(self):
+            super().__init__()
+
+            self.extractor = models.vgg16(pretrained=True)
+            self.extractor.classifier = nn.Sequential()
+
+            self.bbox = nn.Sequential(
+                nn.Linear(4096, 128),
+                nn.ReLU(),
+                nn.Linear(128, 64),
+                nn.ReLU(),
+                nn.Linear(64, 32),
+                nn.ReLU(),
+                nn.Linear(32, 4),
+                nn.Sigmoid(),
+            )
+
+        def forward(self, x):
+            return self.bbox(self.extractor(x))
+  #+end_src
+
+  #+RESULTS:
+
+
+* 学習
+  
+  #+name: init-lr
+  : 0.0001
+  #+name: epochs
+  : 25
+
+  #+begin_src python :var init_lr=init-lr epochs=epochs
+    model = VGG16ObjectDetector()
+    for part, modules in model.named_children():
+        if part == "extractor":
+            grad = False
+        else:
+            grad = True
+
+        for param in modules.parameters():
+            param.requrires_grad_(grad)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    optim = nn.Adam(model.parameters(), lr=init_lr)
+    criterion = nn.MSELoss()
+
+    for epoch in range(epochs):
+        losses = []
+        for data, target in bdd_train_loader:
+            inp = data.to(device)
+
+            optim.zero_grad()
+
+            outputs = model(inp)
+            loss = criterion(outputs, target)
+            loss.backward()
+            optim.step()
+
+        if (epoch + 1) % p_num == 0:
+            print(f"Epoch {epoch + 1} Loss: {sum(loss) / len(loss)}")
+  #+end_src
+
+  #+RESULTS:
+  :RESULTS:
+  # [goto error]
+  #+begin_example
+
+    AttributeErrorTraceback (most recent call last)
+    <ipython-input-13-642406428ca2> in <module>
+          1 init_lr=0.0001
+          2 epochs=25
+    ----> 3 model = VGG16ObjectDetector()
+          4 for part, modules in model.named_children():
+          5     if part == "extractor":
+
+    <ipython-input-4-644046ff3df1> in __init__(self)
+          4 
+          5         self.extractor = models.vgg16(pretrained=True)
+    ----> 6         self.extractor.classifier = nn.Sequential()
+          7 
+          8         self.bbox = nn.Sequential(
+
+    AttributeError: 'str' object has no attribute 'Sequential'
+  #+end_example
+  :END:
+
+* 参考
+  - https://www.pyimagesearch.com/2020/10/05/object-detection-bounding-box-regression-with-keras-tensorflow-and-deep-learning/

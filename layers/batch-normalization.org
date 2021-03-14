@@ -1,0 +1,19 @@
+#+title: Batch Normalization
+#+author: Mohd Hafiz Hilman
+
+#+startup: showall hideblocks
+
+* 概念
+  - Ioffe と Szegedy は 2015 年の論文「 Batch Normalization: Accelerating Deep Network Training by
+    Reducing Internal Covariate Shift 」で紹介
+  - TODO 「 Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift 」を
+    読み, ノートを作
+
+* 特徴
+  1. 認識精度が高くなりながら, より早くて, 安定した収束を導く
+  2. 訓練時間が長くなる
+
+  多くの場合, 使ったほうが良い
+
+* 一時ノート
+  - BN を使用することによって, 訓練時間が上がる一方, 精度もが上がる

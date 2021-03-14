@@ -1,0 +1,11 @@
+NOTE ON LAYER IN NN -*- mode:org -*-
+
+TODO: Make your own library to understand basic CNN.
+* About layer
+  - consists of group of nodes that can map input to output nonlinearly
+  - besides the input layer, every layer essentially is a group of activation
+    functions (layers are functions)
+  - when a layer is 'learning':
+    - the functions minimize error by adjusting the parameters that they own
+
+

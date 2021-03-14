@@ -1,0 +1,106 @@
+# -*- org-preview-latex-image-directory: "../output/ltximages/" -*-
+
+#+property: header-args:python :session l2-norm-loss :async yes
+#+title: 2乗和誤差
+
+* 概念
+  - Euclidean loss function とも呼ばれる
+  - 予測値と真値の差, または, 距離の二乗
+  - 曲がっている, あるいは目的に収束しているようのため, 良い損失アルゴリズム
+    - この損失アルゴリズムを実装することによって, アルゴリズム (モデル) 目的に近くするほど,
+      収束がよりゆっくりになり, 最小限のオーバーシュートを避ける
+
+* 実装
+
+  \[L2 = (Y_true - Y_pred)^2\]
+
+  インポートとデータの準備.
+  #+begin_src python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    pred_y = np.linspace(-1, 1, 500)
+    truth_y = 0
+  #+end_src
+
+  #+RESULTS:
+
+  この損失関数は, いくつかの種類が存在する.
+  [[https://math.stackexchange.com/questions/884887/why-divide-by-2m][説明]]
+  #+begin_src python
+    def mean_squared_error(y, t, mode=None, raw=False):
+        error = (y - t) ** 2
+
+        if not raw:
+            # スケール化した平均を得る
+            error = sum(error)
+
+        if not isinstance(mode, list):
+            mode = [mode]
+        if "div2" in mode:
+            error = error / 2
+        if "average" in mode:
+            error = error / len(y)
+
+        return error
+  #+end_src
+
+  #+RESULTS:
+
+  L2 損失を計算する.
+  #+begin_src python
+    print(f"Normal error: {mean_squared_error(pred_y, truth_y)}")
+    print(f"1/2 error: {mean_squared_error(pred_y, truth_y, mode='div2')}")
+    print(f"1/m error: {mean_squared_error(pred_y, truth_y, mode='average')}")
+    print(f"1/2m error: {mean_squared_error(pred_y, truth_y, mode=['div2', 'average'])}")
+  #+end_src
+
+  #+RESULTS:
+  : Normal error: 167.33466933867743
+  : 1/2 error: 83.66733466933871
+  : 1/m error: 0.3346693386773549
+  : 1/2m error: 0.16733466933867744
+
+  #+begin_src python :file ../output/images/l2_loss.png
+    def make_a_plot():
+        # raw だから, "average" が使えない
+        for mode in [None, "div2"]:
+            plt.plot(
+                pred_y, mean_squared_error(pred_y, truth_y, mode=mode, raw=True),
+                label=f"Mode={mode}"
+            )
+
+        plt.title('L2 loss')
+        plt.xlabel('Predictions')
+        plt.ylabel('Ground Truths')
+        plt.legend()
+        plt.show()
+
+    make_a_plot()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/l2_loss.png]]
+
+  上のグラフを見ると, 「Predictions」と, 0 である「Ground Truth」が一致するとき,
+  「L2 loss」が最も小さい値を持つようになる. これは, 予測は真値に近いと意味.
+
+* torch の実装
+  データの準備.
+  #+begin_src python
+    n_class = 5
+    n_batch = 8
+
+    gt = np.array([0, 2, 4, 2, 2, 1, 3, 0])
+
+    inp = torch.tensor([[0.3, 0.5, 0.2],
+                        [0.1, 0.1, 0.8]]).float()
+    gt = torch.tensor([[1, 0, 0],
+                        [0, 0, 1]]).float()
+
+    mse = torch.nn.MSELoss(reduction="none")
+    output = mse(inp, gt)
+  #+end_src
+
+  #+RESULTS:
+

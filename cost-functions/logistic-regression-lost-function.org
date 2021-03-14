@@ -1,0 +1,137 @@
+#+property: header-args:python :session logistic-cost :async yes :kernel lightnet-dev
+
+#+begin_src python
+  import numpy as np
+  import matplotlib.pyplot as plt
+#+end_src
+
+#+RESULTS:
+
+
+ロジスティック回帰のコスト関数はどうやって動いているかを確認.
+このコスト関数は「y=0」と「y=1」の部分があるため, ちょっと理解しづらくて,
+このノートで解析.
+
+* データ
+  #+name: data
+  : ../datasets/coursera-ml/ex2/ex2data1.txt
+  #+begin_src python :var data=data
+    data = np.loadtxt(data, delimiter=",")
+    X = data[:, :-1]
+    y = data[:, -1]
+    X = np.c_[np.ones(len(X)), X]
+  #+end_src
+
+  #+RESULTS:
+
+  ゼータの準備.
+  #+begin_src python
+    # 実験で得た数字
+    theta_gt = [-25.161, 0.206, 0.201]
+    theta_range = []
+    for gt in theta_gt:
+        half = np.absolute(gt / 2)
+        theta_range.append(np.linspace(gt - half, gt + half, 100).reshape(-1, 1))
+    theta_range = np.concatenate(theta_range, axis=1)
+  #+end_src
+
+  #+RESULTS:
+
+* 関数
+  - そのまま線形回数の平均二条誤差を使用したら,
+    「non-convex」になり, J(θ) は最小値に至ることを保証できない
+    - 波のような関数になってしまう
+  - そのために, 以下の関数を使用
+
+    \[
+    Cost(h_{\theta}(x), y) = y * -log(h_{\theta}(x)) + (y - 1) * -log(1 - h_{\theta}(x))
+    \]
+
+  - 仮設関数は以下のとおり
+    - 勉強のため, 以下のコスト関数を明瞭的に書いた
+    - ベクトル化した方が良い
+    #+begin_src python
+      def h(X, theta):
+          return 1 / (1 + np.exp(X @ theta))
+
+      def logistic_cost_one(X, theta):
+          y = 1
+          return (y * -np.log(h(X, theta))).sum() / len(X)
+
+      def logistic_cost_zero(X, theta):
+          y = 0
+          return ((y - 1) * -np.log(1 - h(X, theta))).sum() / len(X)
+
+      def logistic_cost(X, y, theta):
+          X_y0 = X[y == 0]
+          X_y1 = X[y == 1]
+
+          cost_X_y0 = logistic_cost_zero(X_y0, theta)
+          cost_X_y1 = logistic_cost_one(X_y1, theta)
+          cost = cost_X_y0 + cost_X_y1
+
+          return cost, cost_X_y0, cost_X_y1
+    #+end_src
+
+    #+RESULTS:
+
+* コストグラフ
+
+  y = 0 の場合
+  #+begin_src python :file ../output/images/logistic-cost-zero.png
+    cost = []
+    for _theta in theta_range:
+        cost.append(logistic_cost_zero(X[y == 0], _theta))
+    plt.plot(cost, label="lost when y = 0")
+    plt.plot([len(cost) // 2 for _ in range(2)], [min(cost), max(cost)], label="optimum lost")
+    plt.legend()
+    plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/logistic-cost-zero.png]]
+
+  y = 1 の場合
+  #+begin_src python :file ../output/images/logistic-cost-one.png
+    cost = []
+    for _theta in theta_range:
+        cost.append(logistic_cost_one(X[y == 1], _theta))
+    plt.plot(cost, label="lost when y = 1")
+    plt.plot([len(cost) // 2 for _ in range(2)], [min(cost), max(cost)], label="optimum lost")
+    plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/logistic-cost-one.png]]
+
+
+  組み合わせると.
+  #+begin_src python :file ../output/images/logistic-cost-kumiawase.png
+    cost_all = {"cost": [], "cost_X_y0" : [], "cost_X_y1": []}
+    for _theta in theta_range:
+        for key, out in zip(cost_all, logistic_cost(X, y, _theta)):
+            cost_all[key].append(out)
+    plt.plot(cost_all["cost"], label="combined lost")
+    plt.plot([len(cost_all["cost"]) // 2 for _ in range(2)],
+             [min(cost_all["cost"]), max(cost_all["cost"])], label="optimum lost")
+    plt.legend()
+    plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/logistic-cost-kumiawase.png]]
+
+
+  一個ずつ見たら.
+  #+begin_src python :file ../output/images/logistic-cost-hikaku.png
+    plt.plot(cost_all["cost_X_y0"], label="cost_X_y0")
+    plt.plot(cost_all["cost_X_y1"], label="cost_X_y1")
+    plt.plot([len(cost_all["cost_X_y0"]) // 2 for _ in range(2)],
+             [min(cost_all["cost_X_y0"]), max(cost_all["cost_X_y1"])], label="optimum lost")
+    plt.legend()
+    plt.show()
+  #+end_src
+
+  #+RESULTS:
+  [[file:../output/images/logistic-cost-hikaku.png]]
+

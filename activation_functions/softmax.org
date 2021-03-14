@@ -1,0 +1,73 @@
+#+property: header-args:python :session softmax :async yes
+
+* 概念
+
+* 特徴
+  - logits を 確率にする
+  - 出力は 0 から 1 に押し込まれる
+  - 出力の総和は 1 になる
+    - 出力は確率として解釈可能 (統計的な対応が可能)
+  - 入力と出力の大小関係は変わらない
+    - =y = exp(x)= という指数関数は, 単調増加する関数のため
+    - そのため, 推論フェーズのとき, この軽作が省略される
+  - square_error 的な機能を持っているっぽい (- 数字を + にする)
+
+* 実装
+  - 自分のノードを分子にし, すべてのノードの和を分母にする
+
+  #+begin_src python
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+
+    def bad_softmax(x):
+        exp = np.exp(x)
+        return exp / np.sum(exp)
+
+    def softmax(x, c=None):
+        if c is None:
+            c = np.max(x)
+
+        exp = np.exp(x - c)
+        return exp / np.sum(exp)
+  #+end_src
+
+  #+RESULTS:
+
+  #+begin_src python
+    a = np.array([1010, 1000, 990])
+    out = bad_softmax(a)
+    print("ソフトマックスによるオーバフロー:")
+    print(f"softmax({a}) = {out}")
+  #+end_src
+
+  #+RESULTS:
+  : ソフトマックスによるオーバフロー:
+  : softmax([1010 1000  990]) = [nan nan nan]
+  : /home/hilman_dayo/.pyenv/versions/p3.7/lib/python3.7/site-packages/ipykernel_launcher.py:6: RuntimeWarning: overflow encountered in exp
+  :
+  : /home/hilman_dayo/.pyenv/versions/p3.7/lib/python3.7/site-packages/ipykernel_launcher.py:7: RuntimeWarning: invalid value encountered in true_divide
+  :   import sys
+
+  #+begin_src python
+    b = a - max(a)
+    out = softmax(b)
+    print("引き算による解決:")
+    print(f"softmax({b}) = {out}")
+  #+end_src
+
+  #+RESULTS:
+  : 引き算による解決:
+  : softmax([  0 -10 -20]) = [9.99954600e-01 4.53978686e-05 2.06106005e-09]
+
+  実験的に...
+  #+begin_src python
+    for i in a:
+        out = softmax(a, c=i)
+        print(out)
+  #+end_src
+
+  #+RESULTS:
+  : [9.99954600e-01 4.53978686e-05 2.06106005e-09]
+  : [9.99954600e-01 4.53978686e-05 2.06106005e-09]
+  : [9.99954600e-01 4.53978686e-05 2.06106005e-09]

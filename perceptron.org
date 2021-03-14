@@ -1,0 +1,378 @@
+#+property: header-args:python :session perceptron :async yes
+
+A CENTER NOTE ON PERCEPTRON -*- mode: org -*-
+
+There is another note on the GoodNotes.
+
+* 概念
+  - 考案者: アメリアの研究者のローゼンブラット (Rosenblatt), 1957
+  - 一番簡単な NN の一種
+    - 単一のニューロンの情報処理からモデル化
+    - NN の起源となるアルゴリズム
+    - 正確に, 「単純パーセプトロン」や「人工ニューロン」と呼ばれる
+  - 複数の信号を入力として受け取り, 1 つの信号を出力
+    - 信号は「0」か「1」のどちらか
+  - 構造は, =AND=, =NAND=, =OR= と同じ
+    - 重みの調整で, パーセプトロンがこれらを真似られる
+  - 要素
+    - 入力
+    - 重み: 入力信号への重要度を調整
+    - バイアス: 入力信号の重み付き和の発火のしやすさを調整
+  - for two-class classification problem
+  - closely related to linear regression and logistic regression in making
+    predictions process
+    - e.g. a weighted sum of inputs
+
+* Algorithm
+                   ~activation = sum(weight_i * x_i) + bias~
+                ~prediction = 1.0 if activation >= 0.0 else 0.0~
+
+  <q:analogy>
+  - neuron:
+    - input signals -> dendrites of neuron -> other cell body
+  - Perceptron:
+    - weighted and combined input training data -> activation function -> transfer function (prediction)
+    - activation function: linear equation
+    - transfer function: step transfer function
+
+  - weights are estimated from training data using stochastic gradient descent
+              ~w = w + learning_rate * (expected - predicted) * x~
+
+* 例
+** AND, NAND, OR 論理回路表現
+   パーセプトロンで AND, NAND, OR 論理回路を表現
+
+   - 入力: x0 (0 か 1), x1 (0 か 1)
+   - パラメータ: =(w0, w1, θ)=
+   - 出力: y (0 か 1)
+
+   - ゲートの例え:
+     - AND:
+       パレメータは
+       (0.5, 0.5, 0.7), (1.0, 1.0, 1.0) 時に条件を満す
+     - NAND:
+       パレメータは
+       (-0.5, -0.5, -0.7), (-1.0, -1.0, -1.0) 時に条件を満す
+       (符号を反転するだけで)
+     - OR:
+       パレメータは
+       (1.0, 1.0, 0.9), (0.7, 0.7, 0.6) 時に条件を満す
+
+     #+begin_src python
+       import numpy as np
+
+       class LogicCircuit:
+           """Logic circuit for AND, OR and NAND."""
+           def __init__(self, inputs=None):
+               if inputs is None:
+                   self.inputs = np.array([
+                       [0, 0],
+                       [0, 1],
+                       [1, 0],
+                       [1, 1],
+                   ])
+               else:
+                   self.inputs = np.array(inputs)
+
+           def __call__(self, w0, w1, theta, mode: int = 1):
+               weights = np.array([w0, w1])
+               out = np.sum(self.inputs * weights, axis=1)
+
+               # XXX: バグを発生させるコード
+               # そもそも、「0」を持つ値が代替されない
+               # out[out <= theta] = 0
+               # out[out != 0] = 1
+
+               # XXX: バグを発生させるコード
+               # 「out」の沙汰に依存する!
+               # out[out <= theta] = 0
+               # out[out > theta] = 1
+
+               if mode == 1:
+                   to_0 = out <= theta
+                   to_1 = out > theta
+                   out[to_0] = 0
+                   out[to_1] = 1
+               elif mode == 2:
+                   bias = -theta
+                   out += bias
+
+                   to_0 = out <= 0
+                   to_1 = out > 0
+                   out[to_0] = 0
+                   out[to_1] = 1
+               else:
+                   raise Exception(f"Do not recognize `mode={mode}`")
+
+               return np.concatenate([self.inputs, out.reshape(-1, 1)], axis=1)
+
+           @staticmethod
+           def print(logic_table):
+               for logic in logic_table:
+                   print(f"{logic}\t", end="")
+               print()
+     #+end_src
+
+     #+RESULTS:
+
+     #+begin_src python
+       params = {
+           "AND": [(0.5, 0.5, 0.7), (1.0, 1.0, 1.0)],
+           "NAND": [(-0.5, -0.5, -0.7), (-1.0, -1.0, -1.1)],
+           "OR": [(1.0, 1.0, 0.9), (0.7, 0.7, 0.6), (0.5, 0.5, 0.2)]}
+
+       logic_circuit = LogicCircuit()
+       for logic, values in params.items():
+           print(f"{logic}:")
+           for value in values:
+               logic_circuit.print(logic_circuit(*value, mode=1))
+     #+end_src
+
+     #+RESULTS:
+     : AND:
+     : [0. 0. 0.]	[0. 1. 0.]	[1. 0. 0.]	[1. 1. 1.]
+     : [0. 0. 0.]	[0. 1. 0.]	[1. 0. 0.]	[1. 1. 1.]
+     : NAND:
+     : [0. 0. 1.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 0.]
+     : [0. 0. 1.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 0.]
+     : OR:
+     : [0. 0. 0.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 1.]
+     : [0. 0. 0.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 1.]
+     : [0. 0. 0.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 1.]
+
+     #+begin_src python
+       for logic, values in params.items():
+           print(f"{logic}:")
+           for value in values:
+               logic_circuit.print(logic_circuit(*value, mode=2))
+     #+end_src
+
+     #+RESULTS:
+     : AND:
+     : [0. 0. 0.]	[0. 1. 0.]	[1. 0. 0.]	[1. 1. 1.]
+     : [0. 0. 0.]	[0. 1. 0.]	[1. 0. 0.]	[1. 1. 1.]
+     : NAND:
+     : [0. 0. 1.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 0.]
+     : [0. 0. 1.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 0.]
+     : OR:
+     : [0. 0. 0.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 1.]
+     : [0. 0. 0.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 1.]
+     : [0. 0. 0.]	[0. 1. 1.]	[1. 0. 1.]	[1. 1. 1.]
+
+*** XOR 排他的論理和
+    - 単層のパーセプトロンが表現しかねる
+      - 単層のパーセプトロンは直線で分けた領域だけ表現可能.
+      - つまり, 非線形の領域はだめ
+    - AND, NAND, OR を組み合わせ, 表現可能になる
+
+
+    XOR を表現.
+    入力を変えらないといけない.
+    #+begin_src python
+      and_param = params["AND"][0]
+      nand_param = params["NAND"][0]
+      or_param = params["OR"][0]
+
+      nand_out = logic_circuit(*nand_param, mode=2)[:, -1].reshape(-1, 1)
+      or_out = logic_circuit(*or_param, mode=2)[:, -1].reshape(-1, 1)
+
+      and_inputs = np.concatenate([nand_out, or_out], axis=1)
+      and_logic_circuit = LogicCircuit(and_inputs)
+      xor_out = and_logic_circuit(*and_param, mode=2)
+      print("XOR:")
+      logic_circuit.print(xor_out)
+    #+end_src
+
+    #+RESULTS:
+    : XOR:
+    : [1. 0. 0.]	[1. 1. 1.]	[1. 1. 1.]	[0. 1. 0.]
+
+** Sonar Dataset
+   :PROPERTIES:
+   :header-args:
+   :END:
+   - from [[https://machinelearningmastery.com/implement-perceptron-algorithm-scratch-python/][How To Implement The Perceptron Algorithm From Scratch In Python]]
+     - the exercise and the detail of the data can be found in above's website
+     - this exercise is modified to use a much more advanced technique
+   - a binary classification problem that requires a model to differentiate
+     rocks from metal cylinders
+
+   - NO need to normalize the data
+     - all of the variables are continuous and generally in the range 0-1
+
+   - we will have three parts:
+     1) Making Predictions
+     2) Training Network Weights
+     3) Modeling the Sonar Dataset
+   - Do realize that the example will be a bit different from the original one
+     (numpy usage and everything)
+
+*** 1) Making Predictions
+    - step transfer function to make predictions
+
+    First, some preparations.
+    #+BEGIN_SRC python
+      from sklearn.utils import shuffle
+      import numpy as np
+      import pandas as pd  # Handling CSV stuff.
+
+
+      f = pd.read_csv('datasets/sonar_alldata.csv').values
+      X = f[:, :-1].astype(float)
+      Y = f[:, -1]
+
+      X = np.c_[X, np.ones(X.shape[0])]
+
+      Y_idx = Y == "M"
+      Y[Y_idx] = 0
+      Y[np.invert(Y_idx)] = 1
+      Y = Y.astype(float).reshape(-1, 1)
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    :END:
+
+    Then, defining the step transfer function.
+    #+BEGIN_SRC python
+      def predict(x, weights):
+          # If we have a vector coming.
+          if len(x.shape) == 2 and x.shape[0] > 1:
+              X = x  # Just to follow the convention.
+              acts = X @ weights
+              acts[acts >= 0.0] = 1.0
+              acts[acts != 1.0] = 0.0
+              return acts
+
+          act = x @ weights
+
+          # Transfer function. Have be a better way?
+          return 1.0 if act >= 0.0 else 0.0
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    :END:
+
+*** 2) Training
+    - stochastic gradient descent
+      - parameters: *learning rate*, *epochs*
+    - weights are updated based on the error the model made
+
+    #+BEGIN_SRC python
+      def perceptron(X, Y, l_rate, n_epoch, verbose):
+          # Assuming that `train` is already (n, m + 1).
+          weights = np.zeros(X.shape[1]).reshape(-1, 1)
+
+          for epoch in range(n_epoch):
+              sum_error = 0.0
+
+              # Since this is SGD, we update the weights per data point.
+              for x, y in zip(X, Y):
+                  pred = predict(x, weights)
+                  # Looks like we are only dealing with 0 or 1 numbers here. No float.
+                  error = y[0] - pred  # Make sure we just have int type here.
+                  sum_error += error ** 2
+
+                  weights = weights + l_rate * error * x.reshape(-1, 1)
+
+              if verbose:
+                  print(f'epoch={epoch}, l_rate={l_rate:.3f}, sum_error={sum_error:.3f}')
+
+          return weights
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    :END:
+
+*** 3) Modeling the Sonar Dataset
+
+    K folds.
+    #+BEGIN_SRC python
+      def cross_validation_split(X, Y, n_folds):
+          # make the n_folds as simple as possible
+          while X.shape[0] % n_folds != 0:
+              X = X[:-1]
+              Y = Y[:-1]
+
+          X, Y = shuffle(X, Y)
+
+          return np.array(np.split(X, n_folds)), np.array(np.split(Y, n_folds))
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    :END:
+
+    Calculate accuracy percentage.
+    #+BEGIN_SRC python
+      def accuracy_metric(actual, predicted):
+          actual = actual.ravel()
+          predicted = predicted.ravel()
+
+          return sum(actual == predicted) / len(predicted) * 100
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    :END:
+
+    A function to evaluate our algorithm. This will be the main function that
+    would be called.
+    #+BEGIN_SRC python
+      def evaluate_algorithm(X, Y, algorithm, n_folds, *args):
+          X_folds, Y_folds = cross_validation_split(X, Y, n_folds)
+          scores = []
+
+          for i in range(len(X_folds)):
+              X_train = np.delete(X_folds, i, axis=0).reshape(-1, X_folds.shape[-1])
+              Y_train = np.delete(Y_folds, i, axis=0).reshape(-1, Y_folds.shape[-1])
+
+              X_test, Y_test = X_folds[i, :, :], Y_folds[i, :, :]
+
+              # Our perceptron.
+              model = algorithm(X_train, Y_train, *args)
+
+              # Evaluate model on test dataset.
+              pred = predict(X_test, model)
+              acc = accuracy_metric(Y_test, pred)
+
+              scores.append(acc)
+
+          return scores
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    :END:
+
+    The routine.
+    #+BEGIN_SRC python
+      n_folds = 3
+      l_rate = 0.01
+      n_epoch = 500
+      verbose = False
+
+      scores = evaluate_algorithm(X, Y, perceptron, n_folds, l_rate, n_epoch, verbose)
+      print(f'Scores: {scores}')
+      print(f'Mean accuracy: {sum(scores) / len(scores):.3f}%')
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    Scores: [69.56521739130434, 71.01449275362319, 69.56521739130434]
+    Mean accuracy: 70.048%
+    :END:
+
+* TODO [0/5]
+  - [ ] [[q:analogy][a more clear analogy between neuron and perceptron]]
+  - [ ] cannot use [[https://machinelearningmastery.com/implement-perceptron-algorithm-scratch-python/][this]] inside out material. What should I do to change it?
+  - [ ] this code, which based on [[https://machinelearningmastery.com/implement-perceptron-algorithm-scratch-python/][this]] is changed to my liking. Need to check
+    back its "correctness".
+  - [ ] 単一パーセプトロンの活性関数をシグモイドにしたら?
+  - [ ] パーセプトロンと論理回路の関係はまだ曖昧に見える
+
+* References
+  - [[https://machinelearningmastery.com/implement-perceptron-algorithm-scratch-python/][How To Implement The Perceptron Algorithm From Scratch In Python]]
+  - ゼロから作るディープラーニング
