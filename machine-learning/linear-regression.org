@@ -21,7 +21,7 @@
    : ../datasets/coursera-ml/ex1/ex1data1.txt
 
    データの様子を見てみよう.
-   #+begin_src bash :var data=data
+   #+begin_src bash :exports both :var data=data
      head $data -n 3
    #+end_src
 
@@ -215,7 +215,7 @@
    : ../datasets/coursera-ml/ex1/ex1data2.txt
 
    データの様子を見てみよう.
-   #+begin_src bash :var data=data2
+   #+begin_src bash :exports both :var data=data2
      head $data -n 3
    #+end_src
 

@@ -31,7 +31,7 @@
    #+name: data
    : ../datasets/coursera-ml/ex2/ex2data1.txt
 
-   #+begin_src bash :var data=data
+   #+begin_src bash :exports both :var data=data
      head $data -n 3
    #+end_src
 
