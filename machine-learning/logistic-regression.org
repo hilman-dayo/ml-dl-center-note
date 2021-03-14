@@ -1,4 +1,4 @@
-#+property: header-args:python :session logistic-r :async yes :kernel lightnet-dev
+#+property: header-args:python :session logistic-r :async yes :kernel lightnet-dev :exports both
 #+title: ロジスティック回帰
 
 これは Andrew Ng の Machine Learning コースの Exercise 2 (第 3 周目) の答え.
@@ -278,7 +278,7 @@
    #+end_src
 
    #+RESULTS:
-   [[../output/images/mgd-vs-optmin.png]]
+   [[file:../output/images/mgd-vs-optmin.png]]
    
 * ロジスティック回帰 + 正規化 (Regularization)
 * 質問 [0/1]
