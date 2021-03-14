@@ -45,7 +45,7 @@
        1) 学習率を半分 (因数) で低下
 
 
-          #+begin_src python
+          #+begin_src python :exports both
             epochs = 40
             n_epoch = 10 # Number of epoch before the learning rate is dropped
             lr = 0.1
@@ -69,7 +69,7 @@
 
           #+RESULTS:
 
-          #+begin_src python :file output/images/lrs_by_factor.png
+          #+begin_src python :exports both :file output/images/lrs_by_factor.png
             plt.style.use("ggplot")
             plt.plot(range(1, epochs + 1), y_f1, label=f"factor={f1}")
             plt.plot(range(1, epochs + 1), y_f2, label=f"factor={f2}")
@@ -85,7 +85,7 @@
        2) 学習率を一桁で低下 (drop by an order of magnitude)
 
 
-          #+begin_src python
+          #+begin_src python :exports both
             epochs = 40
             n_epoch = 10 # Number of epoch before the learning rate is dropped
             lr = 0.1
@@ -109,7 +109,7 @@
 
           #+RESULTS:
 
-          #+begin_src python :file output/images/lrs_by_magnitude.png
+          #+begin_src python :exports both :file output/images/lrs_by_magnitude.png
             plt.style.use("ggplot")
             plt.plot(range(1, epochs + 1), y_mag1, label=f"magnitude={mag1}")
             plt.plot(range(1, epochs + 1), y_mag2, label=f"magnitude={mag2}")

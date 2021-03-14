@@ -9,7 +9,7 @@
   \]
 
 
-  #+begin_src python :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data.png
+  #+begin_src python :exports both :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data.png
       import matplotlib.pyplot as plt
       import numpy as np
 
@@ -37,7 +37,7 @@
   #+RESULTS:
 
 
-  #+begin_src python :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data-orig.png
+  #+begin_src python :exports both :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data-orig.png
       x = np.random.randint(0, 256, size=(28, 28)).ravel()
 
       plt.figure(figsize=(8, 5))
@@ -48,7 +48,7 @@
   #+RESULTS:
   [[file:../../output/images/normalization-normal-data-orig.png]]
 
-  #+begin_src python :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data-normalize.png
+  #+begin_src python :exports both :session normalization-data-normal :async yes :file ../../output/images/normalization-normal-data-normalize.png
       x_n = normal_normalize(x)
 
       plt.figure(figsize=(8, 5))

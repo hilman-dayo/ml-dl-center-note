@@ -15,7 +15,7 @@
   \[L2 = (Y_true - Y_pred)^2\]
 
   インポートとデータの準備.
-  #+begin_src python
+  #+begin_src python :exports both
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -27,7 +27,7 @@
 
   この損失関数は, いくつかの種類が存在する.
   [[https://math.stackexchange.com/questions/884887/why-divide-by-2m][説明]]
-  #+begin_src python
+  #+begin_src python :exports both
     def mean_squared_error(y, t, mode=None, raw=False):
         error = (y - t) ** 2
 
@@ -48,7 +48,7 @@
   #+RESULTS:
 
   L2 損失を計算する.
-  #+begin_src python
+  #+begin_src python :exports both
     print(f"Normal error: {mean_squared_error(pred_y, truth_y)}")
     print(f"1/2 error: {mean_squared_error(pred_y, truth_y, mode='div2')}")
     print(f"1/m error: {mean_squared_error(pred_y, truth_y, mode='average')}")
@@ -61,7 +61,7 @@
   : 1/m error: 0.3346693386773549
   : 1/2m error: 0.16733466933867744
 
-  #+begin_src python :file ../output/images/l2_loss.png
+  #+begin_src python :exports both :file ../output/images/l2_loss.png
     def make_a_plot():
         # raw だから, "average" が使えない
         for mode in [None, "div2"]:
@@ -87,7 +87,7 @@
 
 * torch の実装
   データの準備.
-  #+begin_src python
+  #+begin_src python :exports both
     n_class = 5
     n_batch = 8
 

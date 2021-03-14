@@ -18,13 +18,13 @@
 
 
 ** 準備
-   #+begin_src python
+   #+begin_src python :exports both
      import numpy as np
    #+end_src
 
    #+RESULTS:
 
-   #+begin_src python :var preds=preds
+   #+begin_src python :exports both :var preds=preds
      dog = np.array([1, 0, 0]).reshape(-1, 1)
      cat = np.array([0, 1, 0]).reshape(-1, 1)
      panda = np.array([0, 0, 1]).reshape(-1, 1)
@@ -41,7 +41,7 @@
    #+RESULTS:
 
 ** 計算
-   #+begin_src python
+   #+begin_src python :exports both
      delta = 1
 
      loss_dog = sum(np.maximum(

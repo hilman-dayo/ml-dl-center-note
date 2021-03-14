@@ -1,7 +1,7 @@
 #+property: header-args:python :session sle :async yes :display plain
 
 * インポート
-  #+begin_src python
+  #+begin_src python :exports both
     """メイン"""
     import numpy as np
     import pandas as pd
@@ -29,7 +29,7 @@
   #+RESULTS:
 
 * データ
-  #+begin_src python
+  #+begin_src python :exports both
     data = pd.read_csv(
         Path(".").absolute().parent / "datasets" /
         "handson_unsupervised_learning" / "credit_card_data" / "credit_card.csv"
@@ -39,7 +39,7 @@
   #+RESULTS:
 
 
-  #+begin_src python
+  #+begin_src python :exports both
     data.head()
   #+end_src
 
@@ -71,7 +71,7 @@
 
 
   各列のデータの要約を確認.
-  #+begin_src python
+  #+begin_src python :exports both
     data.describe()
   #+end_src
 
@@ -133,7 +133,7 @@
 
   =Class= が 1 の行は不正なトランザクションで, それを数える.
   また, =NaN= の存在も把握.
-  #+begin_src python
+  #+begin_src python :exports both
     print(f"不正なトランザクション: {data.Class.sum()}")
     print(f"NaNの数:\n{np.isnan(data).sum()}")
   #+end_src

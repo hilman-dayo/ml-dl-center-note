@@ -1,6 +1,6 @@
 #+property: header-args:python :session region-loss :async yes :exports none
 
-#+begin_src python
+#+begin_src python :exports both
   import pandas as pd
   import torch
   import math
@@ -12,7 +12,7 @@
   TODO: 分析できる Output を作る?
 
   Ground Truth.
-  #+begin_src python
+  #+begin_src python :exports both
     img_dim = (1080, 760)
     class_label = ["dog", "cat", "human"]  # Blue, Green, Red
     n_batch = 2
@@ -46,7 +46,7 @@
 
   #+RESULTS:
 
-  #+begin_src python
+  #+begin_src python :exports both
     preds = [torch.rand([n_batch, 3 * (len(class_label) + 5), i, i]) for i in [13, 26, 52]]
   #+end_src
 
@@ -57,7 +57,7 @@
 
 ** RegionLoss
 *** 準備
-    #+begin_src python
+    #+begin_src python :exports both
       num_classes = len(class_label)
       stride = 13
       anchors = [(116, 90), (156, 198), (373, 326)]
@@ -82,7 +82,7 @@
 
 *** アルゴリズム
 **** utils
-     #+begin_src python
+     #+begin_src python :exports both
        def bbox_ious(boxes1, boxes2):
            """ Compute IOU between all boxes from ``boxes1`` with all boxes from ``boxes2``.
 
@@ -141,7 +141,7 @@
 
 **** 予測できた値の処理
      アルゴリズム用の変数
-     #+begin_src python
+     #+begin_src python :exports both
        training = False                # ?
        output = preds[0]
        nB = output.data.size(0)
@@ -170,7 +170,7 @@
      - =coord= → nB, nA, coordinates[x.sigmoid, y.sigmoid, w, h], nPixels
      - =conf= → nB, nA, nPixels[obj_score]
      - =cls= → nB * nA * nPixels, nC
-     #+begin_src python
+     #+begin_src python :exports both
        # Output
        output = output.view(nB, nA, -1, nPixels)
        print(f"output shape:", output.shape)
@@ -199,7 +199,7 @@
 
 
      =coord= を使って, 本当のボックスの値を格納する =pred_boxes= を作成.
-     #+begin_src python
+     #+begin_src python :exports both
        # 行列は「cls」と同じ
        pred_boxes = torch.FloatTensor(nB * nA * nPixels, 4)
        print("pred_boxes shape:", pred_boxes.shape)
@@ -232,7 +232,7 @@
 
 **** 真値を bb から抽出し, 処理
      パラメータ
-     #+begin_src python :noweb yes
+     #+begin_src python :exports both :noweb yes
        def build_target_brambox(pred_boxes, ground_truth, nB, nH, nW):
            nA = num_anchors
            nAnchors = nA * nH * nW
@@ -278,14 +278,14 @@
 
 ***** ブロック
       #+name: init-mask-for-loss-function
-      #+begin_src python
+      #+begin_src python :exports both
         coord_mask = torch.zeros(nB, nA, nH, nW, requires_grad=False)
         conf_mask = torch.ones(nB, nA, nH, nW, requires_grad=False) * noobject_scale
         cls_mask = torch.zeros(nB, nA, nH, nW, dtype=torch.bool, requires_grad=False)
       #+end_src
 
       #+name: init-gt-tensors
-      #+begin_src python
+      #+begin_src python :exports both
         tcoord = torch.zeros(nB, nA, 4, nH, nW, requires_grad=False)
         tconf = torch.zeros(nB, nA, nH, nW, requires_grad=False)
         tcls = torch.zeros(nB, nA, nH, nW, requires_grad=False)
@@ -293,7 +293,7 @@
 
       =tcoord= を触っているが, 意味わからない
       #+name: what-is-this?
-      #+begin_src python
+      #+begin_src python :exports both
         if training and seen < coord_prefill:
             coord_mask.fill_(math.sqrt(.01 / coord_scale))
             if anchor_step == 4:
@@ -308,7 +308,7 @@
 
       あまりわからないが, =anchors= を [nA X 2] から [nA X 4] に標準化.
       #+name: set-_anchors
-      #+begin_src python
+      #+begin_src python :exports both
         if anchor_step == 4:
             _anchors = anchors.clone()
             _anchors[:, :2] = 0
@@ -317,7 +317,7 @@
       #+end_src
 
       #+name: make-gt-based-on-stride
-      #+begin_src python
+      #+begin_src python :exports both
         cur_pred_boxes = pred_boxes[b * nAnchors:(b + 1) * nAnchors]
 
         gt = torch.empty((gt_filtered.shape[0], 4), requires_grad=False)
@@ -328,7 +328,7 @@
       #+end_src
 
       #+name: matched-conf-mask-to-zero
-      #+begin_src python
+      #+begin_src python :exports both
         # gt X cur_pred_boxes の行列を獲得 (サイズがけっこう大きい)
         # アンカーとクラスにかかわらず, IOU は thresh より大きければ, 「0」をマーク.
         iou_gt_pred = bbox_ious(gt, cur_pred_boxes)  # ここに, クラスの情報が入っていない
@@ -337,13 +337,13 @@
       #+end_src
 
       #+name: best-anchor-for-each-gt
-      #+begin_src python
+      #+begin_src python :exports both
         iou_gt_anchors = bbox_wh_ious(gt, _anchors)
         _, best_anchors = iou_gt_anchors.max(1)
       #+end_src
 
       #+name: masks-and-target-values-for-gt
-      #+begin_src python
+      #+begin_src python :exports both
         nGT = gt.shape[0]
         # 中心の値を左上にする
         gi = gt[:, 0].clamp(0, nW - 1).long()
@@ -376,7 +376,7 @@
       #+end_src
 
       #+name: return
-      #+begin_src python
+      #+begin_src python :exports both
         return (
             coord_mask.view(nB, nA, 1, nPixels),
             conf_mask.view(nB, nA, nPixels),
@@ -389,7 +389,7 @@
 
 
 **** ロスを計算
-     #+begin_src python
+     #+begin_src python :exports both
        loss_coord = coord_scale * mse(coord * coord_mask, tcoord * coord_mask) / (2 * nB)
        loss_conf = mse(conf * conf_mask, tconf * conf_mask) / (2 * nB)
        if nC > 1:

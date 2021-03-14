@@ -1,10 +1,10 @@
-#+property: header-args:python :session logistic-r :async yes :kernel lightnet-dev :exports both
+#+property: header-args:python :session logistic-r :async yes :kernel lightnet-dev
 #+title: ロジスティック回帰
 
 これは Andrew Ng の Machine Learning コースの Exercise 2 (第 3 周目) の答え.
 すべて Python で書いてある.
 
-#+begin_src python
+#+begin_src python :exports both
   import numpy as np
   import matplotlib.pyplot as plt
   from mpl_toolkits.mplot3d import Axes3D
@@ -41,7 +41,7 @@
    | 35.84740876993872 | 72.90219802708364 | 0 |
 
 
-   #+begin_src python :var data=data
+   #+begin_src python :exports both :var data=data
      data = np.loadtxt(data, delimiter=",")
      X, y = data[:, 0:2], data[:, 2]
      X = np.c_[np.ones(len(X)), X]
@@ -53,7 +53,7 @@
    #+RESULTS:
 
 
-   #+begin_src python
+   #+begin_src python :exports both
      def plot_data(X, y, label_x, label_y, label_pos, label_neg):
          neg = (y == 0).ravel()
          pos = (y == 1).ravel()
@@ -72,7 +72,7 @@
    #+RESULTS:
 
 
-   #+begin_src python :file ../output/images/logistic-regression-coursera.png
+   #+begin_src python :exports both :file ../output/images/logistic-regression-coursera.png
      plot_data(X, y, "Exam 1 score", "Exam 2 score", "Admitted", "Not admitted")
    #+end_src
 
@@ -80,7 +80,7 @@
    [[file:../output/images/logistic-regression-coursera.png]]
 ** 関数
    ロジスティック関数の仮説関数.
-   #+begin_src python
+   #+begin_src python :exports both
      def sigmoid(X):
          return 1 / (1 + np.exp(-X))
 
@@ -99,7 +99,7 @@
    : True
 
 
-   #+begin_src python
+   #+begin_src python :exports both
      def cost_function(theta, X, y):
          m = y.size
          J = 0
@@ -129,7 +129,7 @@
 
 
    テスト
-   #+begin_src python
+   #+begin_src python :exports both
      # zero theta
      initial_theta = np.zeros(X.shape[1])
      cost, grad = cost_gradient(initial_theta, X, y)
@@ -152,7 +152,7 @@
    : True
 
 
-   #+begin_src python
+   #+begin_src python :exports both
      def my_gradient_descent(theta, X, y, alpha=0.01, epoch=400):
          # batch gradient descent (すべてのデータを使用)
          J_history = []
@@ -171,7 +171,7 @@
 
 ** 最適化による学習と評価
    今回,「linear-regression.org」と違って,「gradient_descent」を少なくとも直接に使用しない.
-   #+begin_src python
+   #+begin_src python :exports both
      options = {"maxiter": 400}
      initial_theta = np.zeros(X.shape[1])
      # method=grad_function にする場合, `cost_gradient` は J のみ出すようにできるみたい.
@@ -197,7 +197,7 @@
    #+end_example
 
    評価
-   #+begin_src python
+   #+begin_src python :exports both
      y_hat = np.where(h(X, theta) >= .5, 1, 0)
      print(assert_with_answer(
          (y_hat == y).mean() * 100,
@@ -209,7 +209,7 @@
    : True
 
    1 点データに対する推測
-   #+begin_src python
+   #+begin_src python :exports both
      data_point = np.array([1, 45, 85])
      print(assert_with_answer(
          h(data_point, theta),
@@ -222,7 +222,7 @@
    : True
 
 ** 自分の最急降下
-   #+begin_src python
+   #+begin_src python :exports both
      initial_theta = np.zeros(X.shape[1])
      mgd_theta, J_history = my_gradient_descent(initial_theta, X, y, 0.001, 2_000_000)
    #+end_src
@@ -230,7 +230,7 @@
    #+RESULTS:
 
    評価
-   #+begin_src python
+   #+begin_src python :exports both
      y_hat = np.where(h(X, mgd_theta) >= .5, 1, 0)
      print(assert_with_answer(
          (y_hat == y).mean() * 100,
@@ -246,7 +246,7 @@
      - x2 をゼロのとき, 得た θ で x1 を計算することによって
        decision boundry を算出
    
-   #+begin_src python :file ../output/images/logistic-regression-coursera-with-line-and-data-point.png
+   #+begin_src python :exports both :file ../output/images/logistic-regression-coursera-with-line-and-data-point.png
      # Decision Boundry ############################################################
      calc_x1 = lambda point: -((theta[0] + theta[2] * point) / theta[1])
      x2_points = [0, X[:, 2].max()]
@@ -269,7 +269,7 @@
 
 
    自分の降下法による J_history 対 optimize.minimize.
-   #+begin_src python :file ../output/images/mgd-vs-optmin.png :exports both
+   #+begin_src python :exports both :file ../output/images/mgd-vs-optmin.png :exports both
      plt.plot(J_history, label=my_gradient_descent.__name__)
      plt.plot(opt_J_history, label=optimize.minimize.__name__)
      plt.gca().set_xscale("log")

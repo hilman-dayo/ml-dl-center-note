@@ -3,7 +3,7 @@
 
 #+call: gb-autoreload()
 #+name: gd-import
-#+begin_src python
+#+begin_src python :exports both
   import matplotlib.pyplot as plt
   import numpy as np
   from sklearn.datasets import make_blobs
@@ -26,7 +26,7 @@
    - 「loss landscape」に, 局所的最小値と極小値があり, そのいずれかを探すことは勾配降下法の目的である
 
 ** Optimization surface をナビゲートる
-   #+begin_src python :file ../output/images/loss_wr_to_weights.png
+   #+begin_src python :exports both :file ../output/images/loss_wr_to_weights.png
      w = np.linspace(0, 20, 100)
      y1 = np.linspace(20, 5, 20)
      y2 = np.linspace(5, 15, 20)
@@ -105,7 +105,7 @@
 
 *** 必要な関数の定義
     #+name: gd-def-func
-    #+begin_src python
+    #+begin_src python :exports both
       def sigmoid_activation(x):
           return 1.0 / (1 + np.exp(-x))
 
@@ -128,7 +128,7 @@
 
 *** データ準備
     #+name: gd-make-data
-    #+begin_src python
+    #+begin_src python :exports both
       (X, y) = make_blobs(n_samples=1000, n_features=2, centers=2,
                           cluster_std=1.5, random_state=1)
 
@@ -144,7 +144,7 @@
     #+RESULTS:
 
     データの可視化.
-    #+begin_src python :file ../output/images/gd-data.png
+    #+begin_src python :exports both :file ../output/images/gd-data.png
       plt.style.use("ggplot")
       plt.figure()
       plt.title("Data")
@@ -157,7 +157,7 @@
 
 *** 訓練
     #+name: gd-calc-preds-error-loss
-    #+begin_src python
+    #+begin_src python :exports both
       preds = sigmoid_activation(train_x @ W)
       error = preds - train_y
       loss = np.sum(error ** 2)
@@ -167,7 +167,7 @@
     勾配降下更新 (gradient descent update) は, 訓練データと
     予測のシグモイド derivative のエラーとの内積である.
     #+name: gd-calc-sigmoid-gradient
-    #+begin_src python
+    #+begin_src python :exports both
       d = error * sigmoid_deriv(preds)
       gradient = train_x.T @ d  # すべてのデータの 1 つの特徴に対して, 対応する「d」にかける
     #+end_src
@@ -175,7 +175,7 @@
     ここは勾配降下法が実際に起きる大事なところである.
     勾配の値に引かれることによって, 重みが勾配の負の方向に向かって移動する.
     #+name: gd-weight-update
-    #+begin_src python
+    #+begin_src python :exports both
       W += -alpha * gradient
 
       if epoch == 0 or (epoch + 1) % 5 == 0:
@@ -183,7 +183,7 @@
     #+end_src
 
 
-    #+begin_src python :noweb yes :var epochs=100 alpha=0.01
+    #+begin_src python :exports both :noweb yes :var epochs=100 alpha=0.01
       W = np.random.randn(X.shape[1], 1)
       losses = []
 
@@ -223,7 +223,7 @@
 
 *** 評価とグラフ
     #+name: gd-evaluate
-    #+begin_src python
+    #+begin_src python :exports both
       preds = predict(test_x, W)
       print(classification_report(test_y, preds))
     #+end_src
@@ -240,7 +240,7 @@
     :
 
     #+name: gd-plot-loss
-    #+begin_src python
+    #+begin_src python :exports both
       plt.style.use("ggplot")
       plt.plot(range(0, epochs), losses)
       plt.title("Training Loss")
@@ -316,7 +316,7 @@
    #+RESULTS:
 
    バッチを作るために, 以下の関数が必要.
-   #+begin_src python
+   #+begin_src python :exports both
      def next_batch(X, y, batch_size):
          for i in range(0, X.shape[0], batch_size):
              yield (X[i:i + batch_size], y[i:i + batch_size])
@@ -331,7 +331,7 @@
    以下は, 訓練のブロック.
 
    #+name: sgd-calc-preds-error-loss
-   #+begin_src python
+   #+begin_src python :exports both
      preds = sigmoid_activation(batch_x @ W)
      error = preds - batch_y
      epoch_loss.append(np.sum(error ** 2))
@@ -340,17 +340,17 @@
 
    勾配降下更新 (gradient descent update) は, 訓練データと予測シのグモイド derivative のエラーとの内積である.
    #+name: sgd-calc-sigmoid-gradient
-   #+begin_src python
+   #+begin_src python :exports both
      d = error * sigmoid_deriv(preds)
      gradient = batch_x.T @ d  # すべてのデータの 1 つの特徴に対して, 対応する「d」にかける
    #+end_src
 
    #+name: sgd-weight-update
-   #+begin_src python
+   #+begin_src python :exports both
      W += -alpha * gradient
    #+end_src
 
-   #+begin_src python :noweb yes :var epochs=100 alpha=0.01 batch_size=32
+   #+begin_src python :exports both :noweb yes :var epochs=100 alpha=0.01 batch_size=32
      W = np.random.randn(X.shape[1], 1)
      losses = []
 

@@ -13,7 +13,7 @@ A CENTER NOTE ON LABEL BINARIZER.
 
 ** OOP スタイル
    まず, インポートを行う.
-   #+begin_src python
+   #+begin_src python :exports both
      from sklearn.preprocessing import LabelBinarizer
      import numpy as np  # クラスラベルを真似
    #+end_src
@@ -23,7 +23,7 @@ A CENTER NOTE ON LABEL BINARIZER.
    :end:
   
    データを作る.
-   #+begin_src python
+   #+begin_src python :exports both
      # 300 x 1 の 5 クラスラベルを作る.
      labels = np.random.randint(0, 5, (300,1))
      print(labels[:5])
@@ -39,7 +39,7 @@ A CENTER NOTE ON LABEL BINARIZER.
    :end:
   
    バイナリ化を行う.
-   #+begin_src python
+   #+begin_src python :exports both
      lb1 = LabelBinarizer()
      lb1.fit(labels)
      print(f'Classes: {lb1.classes_}')
@@ -54,7 +54,7 @@ A CENTER NOTE ON LABEL BINARIZER.
  
    他のバイナリ化のし方もある. 
    結果的には上と同じ.
-   #+begin_src python
+   #+begin_src python :exports both
      lb2 = LabelBinarizer()
      b_labels2 = lb2.fit_transform(labels)
      print(f'Classes: {lb1.classes_}\n')
@@ -81,7 +81,7 @@ A CENTER NOTE ON LABEL BINARIZER.
 
 ** 関数スタイル
    まず, インポートを行う.
-   #+begin_src python
+   #+begin_src python :exports both
      from sklearn.preprocessing import label_binarize
    #+end_src
 
@@ -90,7 +90,7 @@ A CENTER NOTE ON LABEL BINARIZER.
    :end:
 
    このやり方は, あまり使われないではないかと考えられる.
-   #+begin_src python
+   #+begin_src python :exports both
      # ラベルの順番に注意する必要があるかも
      labels_unique = np.unique(labels)
      b_labels3 = label_binarize(labels, labels_unique)

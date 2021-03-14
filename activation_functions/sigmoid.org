@@ -6,7 +6,7 @@
   S(x) = \dfrac{1}{1 + e^{-x}} = \dfrac{e^{x}}{e^{x} + 1}
   \]
 
-  #+begin_src python :session sigmoid :async yes :file ../output/images/sigmoid.png
+  #+begin_src python :exports both :session sigmoid :async yes :file ../output/images/sigmoid.png
     import matplotlib.pyplot as plt
     import numpy as np
 

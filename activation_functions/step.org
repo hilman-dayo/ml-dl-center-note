@@ -13,7 +13,7 @@
   \]
 
 
-  #+begin_src python :file ../output/images/step.png
+  #+begin_src python :exports both :file ../output/images/step.png
     import matplotlib.pyplot as plt
     import numpy as np
 

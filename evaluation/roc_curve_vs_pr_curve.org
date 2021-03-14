@@ -3,7 +3,7 @@
 途中の「Precision-Recall Curves in Python」に止まった.
 
 #+name: -import
-#+begin_src python
+#+begin_src python :exports both
   from sklearn.datasets import make_classification
   from sklearn.linear_model import LogisticRegression
   from sklearn.model_selection import train_test_split
@@ -12,7 +12,7 @@
 #+end_src
 
 #+name: -normal-setup
-#+begin_src python
+#+begin_src python :exports both
   x, y = make_classification(n_samples=1000, n_classes=2, random_state=1)
   train_x, test_x, train_y, test_y = train_test_split(
       x, y, test_size=0.5, random_state=2)
@@ -69,7 +69,7 @@
    #+RESULTS:
 
    ROC の面積.
-   #+begin_src python
+   #+begin_src python :exports both
      ns_auc = roc_auc_score(test_y, ns_probs)
      lr_auc = roc_auc_score(test_y, lr_probs)
      print(f"No skill: ROC AUC= {ns_auc:.3f}")
@@ -81,7 +81,7 @@
    : Logistic: ROC AUC= 0.903
 
    ROC の曲線.
-   #+begin_src python :file output/roc.png
+   #+begin_src python :exports both :file output/roc.png
      ns_fpr, ns_tpr, ns_thresh = roc_curve(test_y, ns_probs)
      lr_fpr, lr_tpr, lr_thresh = roc_curve(test_y, lr_probs)
      plt.plot(ns_fpr, ns_tpr, linestyle="--", label="No Skill")
@@ -108,7 +108,7 @@
 
    #+RESULTS:
 
-   #+begin_src python
+   #+begin_src python :exports both
      yhat = model.predict(test_x)    # .probaと直接にクラスの値を予測
      lr_precision, lr_recall, lr_thresh = precision_recall_curve(test_y, lr_probs)
      lr_f1, lr_auc = f1_score(test_y, yhat), auc(lr_recall, lr_precision)
@@ -118,7 +118,7 @@
    #+RESULTS:
    : Logistic: f1=0.841% auc=0.898%
 
-   #+begin_src python :file output/pr.png
+   #+begin_src python :exports both :file output/pr.png
      no_skill = len(test_y[test_y==1]) / len(test_y)
    #+end_src
 

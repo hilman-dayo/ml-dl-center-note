@@ -5,7 +5,7 @@
 
 すべて Python で書いてある.
 
-#+begin_src python
+#+begin_src python :exports both
   import numpy as np
   import matplotlib.pyplot as plt
   from mpl_toolkits.mplot3d import Axes3D
@@ -32,7 +32,7 @@
 
 
    確実にデータを読み込む.
-   #+begin_src python :var data=data
+   #+begin_src python :exports both :var data=data
      data = np.loadtxt(data, delimiter=",")
      X, y = data[:, 0], data[:, 1]
      X = np.c_[np.ones(len(X)), X]
@@ -46,7 +46,7 @@
 
 
    データを可視化.
-   #+begin_src python :file ../output/images/cml-ex1-1.jpg
+   #+begin_src python :exports both :file ../output/images/cml-ex1-1.jpg
      def plot_data(x, y):
          # ms → markersize
          # mec markeredgecolor
@@ -61,7 +61,7 @@
 
 ** 計算
    #+name: h
-   #+begin_src python
+   #+begin_src python :exports both
      def h(X, theta):
          return X @ theta
    #+end_src
@@ -70,7 +70,7 @@
 
 
     #+name: compute-cost
-   #+begin_src python
+   #+begin_src python :exports both
       def compute_cost(X, y, theta, method=1):
           if method == 1:
               J = 1 / (2 * y.size) * np.square(h(X, theta) - y).sum()
@@ -85,7 +85,7 @@
    #+end_src
 
 
-   #+begin_src python
+   #+begin_src python :exports both
      ans_0_0 = 32.07
      ans_n1_2 = 54.24
      print(assert_with_answer(
@@ -102,7 +102,7 @@
 
 
    #+name: gradient-descent
-   #+begin_src python
+   #+begin_src python :exports both
      def gradient_descent(X, y, theta, alpha, num_iters, method=1):
          m = y.size
          theta = theta.copy()
@@ -122,7 +122,7 @@
    #+end_src
 
 
-   #+begin_src python
+   #+begin_src python :exports both
      theta = np.zeros(2)
      iterations = 1500
      alpha = 0.01
@@ -143,7 +143,7 @@
 
 
    本番の予測を行う.
-   #+begin_src python
+   #+begin_src python :exports both
      # / 10,000 (そのスケールのため)
      ans_predict1 = 4519.7678677 / 10_000
      ans_predict2 = 45342.45012945 / 10_000
@@ -158,7 +158,7 @@
 
 ** 可視化
    ロスを可視化.
-   #+begin_src python :file ../output/images/lr-visualize.png
+   #+begin_src python :exports both :file ../output/images/lr-visualize.png
      plt.plot(J_history)
      plt.show()
    #+end_src
@@ -168,7 +168,7 @@
 
 
    モデルを可視化.
-   #+begin_src python :file ../output/images/gd-test.png
+   #+begin_src python :exports both :file ../output/images/gd-test.png
      plot_data(X[:, 1], y)
      plt.plot(X[:, 1], X @ theta_out, "-")
      plt.legend(["Training data", "Linear Regression"])
@@ -179,7 +179,7 @@
    [[file:../output/images/gd-test.png]]
 
    θ の可視化.
-   #+begin_src python :file ../output/images/lr-3d-plot.png
+   #+begin_src python :exports both :file ../output/images/lr-3d-plot.png
      θ0 = np.linspace(-10, 10, 100)
      θ1 = np.linspace(-1, 4, 100)
      J_vals = np.zeros((θ0.size, θ1.size))
@@ -226,7 +226,7 @@
 
 
    確実にデータを読み込む.
-   #+begin_src python :var data=data2
+   #+begin_src python :exports both :var data=data2
      data = np.loadtxt(data, delimiter=",")
      X2, y2 = data[:, :2], data[:, 2]
      X2 = np.c_[np.ones(len(X2)), X2]
@@ -240,7 +240,7 @@
 
 
    データを正規化.
-   #+begin_src python
+   #+begin_src python :exports both
      def feature_normalize(X):
          "Standardization"
          X_norm = X.copy()
@@ -272,7 +272,7 @@
 
 
    良さそうな学習率を選択しよう.
-   #+begin_src python :file ../output/images/lr-multi.png
+   #+begin_src python :exports both :file ../output/images/lr-multi.png
      theta = np.zeros(X_norm.shape[1])
      iterations = 50
      # log of multiplicative of 3
@@ -288,7 +288,7 @@
    [[file:../output/images/lr-multi.png]]
 
    良い学習率を使って, 学習.
-   #+begin_src python :var alpha=0.3
+   #+begin_src python :exports both :var alpha=0.3
      num_iters = 400
      theta = np.zeros(X_norm.shape[1])
      theta, J_history = gradient_descent(X_norm, y2, theta, alpha, num_iters)
@@ -305,7 +305,7 @@
    : Predicted price of a 1650 sq-ft, 3 br house (using gradient descent): $293081
 
 ** Normal Equations
-   #+begin_src python
+   #+begin_src python :exports both
      def normal_equation(X, y):
          return np.linalg.inv(X.T @ X) @ X.T @ y
 
@@ -321,7 +321,7 @@
 
 
    比較すると:
-   #+begin_src python
+   #+begin_src python :exports both
      print(f"GD: {price}\nNE: {price_ne}")
    #+end_src
 
@@ -332,7 +332,7 @@
 
 ** 可視化
    ロスを可視化.
-   #+begin_src python :file ../output/images/lrm-visualize.png
+   #+begin_src python :exports both :file ../output/images/lrm-visualize.png
      plt.plot(J_history)
      plt.show()
    #+end_src

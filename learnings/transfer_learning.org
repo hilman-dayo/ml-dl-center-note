@@ -3,7 +3,7 @@
 #+title: 転移学習
 
 * 準備
-  #+begin_src python
+  #+begin_src python :exports both
     from pathlib import Path
     import random
     import numpy as np
@@ -21,7 +21,7 @@
 
   #+RESULTS:
 
-  #+begin_src python
+  #+begin_src python :exports both
     torch.manual_seed(1234)
     np.random.seed(1234)
     random.seed(1234)

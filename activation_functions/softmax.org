@@ -15,7 +15,7 @@
 * 実装
   - 自分のノードを分子にし, すべてのノードの和を分母にする
 
-  #+begin_src python
+  #+begin_src python :exports both
     import numpy as np
     import matplotlib.pyplot as plt
 
@@ -34,7 +34,7 @@
 
   #+RESULTS:
 
-  #+begin_src python
+  #+begin_src python :exports both
     a = np.array([1010, 1000, 990])
     out = bad_softmax(a)
     print("ソフトマックスによるオーバフロー:")
@@ -49,7 +49,7 @@
   : /home/hilman_dayo/.pyenv/versions/p3.7/lib/python3.7/site-packages/ipykernel_launcher.py:7: RuntimeWarning: invalid value encountered in true_divide
   :   import sys
 
-  #+begin_src python
+  #+begin_src python :exports both
     b = a - max(a)
     out = softmax(b)
     print("引き算による解決:")
@@ -61,7 +61,7 @@
   : softmax([  0 -10 -20]) = [9.99954600e-01 4.53978686e-05 2.06106005e-09]
 
   実験的に...
-  #+begin_src python
+  #+begin_src python :exports both
     for i in a:
         out = softmax(a, c=i)
         print(out)

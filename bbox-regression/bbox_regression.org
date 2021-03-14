@@ -1,7 +1,7 @@
 #+property: header-args:python :session bbr :async yes :kernel lightnet-dev
 
 * インポート
-  #+begin_src python
+  #+begin_src python :exports both
     import torch
     from torch.utils.data import Dataset, DataLoader
     import torch.nn as nn
@@ -24,7 +24,7 @@
   #+name: h5-root
   : ../datasets/caltech101/annotations_h5/Airplanes_Side_2.h5
 
-  #+begin_src python :var images_root=images-root h5_root=h5-root
+  #+begin_src python :exports both :var images_root=images-root h5_root=h5-root
     class AirplanesSide(Dataset):
         def __init__(self, transforms=None):
             self.images_name = list(Path(images_name).glob("*.jpg"))
@@ -66,7 +66,7 @@
   : 32
 
   データの初期化.
-  #+begin_src python :var batch_size=batch-size
+  #+begin_src python :exports both :var batch_size=batch-size
     airplanes_dataset = AirplaneseSide(transforms.Compose(
         [transforms.ToTensor()]))
     train_subset, test_subset = train_test_split(
@@ -79,7 +79,7 @@
 
 * ネットワーク
 
-  #+begin_src python
+  #+begin_src python :exports both
     class VGG16ObjectDetector(nn.Module):
         def __init__(self):
             super().__init__()
@@ -112,7 +112,7 @@
   #+name: epochs
   : 25
 
-  #+begin_src python :var init_lr=init-lr epochs=epochs
+  #+begin_src python :exports both :var init_lr=init-lr epochs=epochs
     model = VGG16ObjectDetector()
     for part, modules in model.named_children():
         if part == "extractor":

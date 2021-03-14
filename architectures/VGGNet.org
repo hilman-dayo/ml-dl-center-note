@@ -16,7 +16,7 @@
 
 * 実行
 ** 前準備
-   #+begin_src python
+   #+begin_src python :exports both
      import cv2
      import torch
      import torchvision
@@ -31,7 +31,7 @@
    #+RESULTS:
 
 
-   #+begin_src python
+   #+begin_src python :exports both
      use_pretrained = True
      net = models.vgg16(pretrained=use_pretrained)
      net.eval()
@@ -88,7 +88,7 @@
      )
    #+end_example
 
-   #+begin_src python
+   #+begin_src python :exports both
      n_layer = 0
      for i in net.modules():
          if (isinstance(i, torch.nn.modules.conv.Conv2d) or
@@ -102,7 +102,7 @@
    : 16 層がある.
 
 ** データの前処理
-   #+begin_src python
+   #+begin_src python :exports both
      class BaseTransform():
          def __init__(self, resize, mean, std):
              self.base_transform = transforms.Compose([
@@ -121,7 +121,7 @@
    #+name: image-path
    : ../resources/goldenretriever-3724972_640.jpg
    データの可視化.
-   #+begin_src python :var image_path=image-path
+   #+begin_src python :exports both :var image_path=image-path
      img_orig = Image.open(image_path)
 
      resize = 224                    # VGGがもとめている画像サイズ
@@ -137,7 +137,7 @@
 
    #+RESULTS:
 
-   #+begin_src python :file ../output/images/vgg-data.png
+   #+begin_src python :exports both :file ../output/images/vgg-data.png
      fig, axs = plt.subplots(2)
      fig.suptitle("Image before vs after transformed.")
      axs[0].imshow(img_orig)
@@ -154,7 +154,7 @@
    : /tmp/light
 
 ** 推論
-   #+begin_src python :var images_dir_path=images-dir-path cls_json_path=cls-json-path
+   #+begin_src python :exports both :var images_dir_path=images-dir-path cls_json_path=cls-json-path
      class ILSVRCPredictor:
          def __init__(self, class_index):
              self.class_index = class_index

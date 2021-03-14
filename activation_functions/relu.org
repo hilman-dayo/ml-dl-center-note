@@ -11,7 +11,7 @@
   \]
 
 
-  #+begin_src python :session relu :file ../output/images/relu.png :async yes
+  #+begin_src python :exports both :session relu :file ../output/images/relu.png :async yes
     import matplotlib.pyplot as plt
     import numpy as np
 
