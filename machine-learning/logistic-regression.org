@@ -269,7 +269,7 @@
 
 
    自分の降下法による J_history 対 optimize.minimize.
-   #+begin_src python :file ../output/images/mgd-vs-optmin.png
+   #+begin_src python :file ../output/images/mgd-vs-optmin.png :exports both
      plt.plot(J_history, label=my_gradient_descent.__name__)
      plt.plot(opt_J_history, label=optimize.minimize.__name__)
      plt.gca().set_xscale("log")
